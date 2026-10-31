@@ -692,3 +692,13 @@ slot per agent.
   (2) one repeatability line on slide 5 or 7 (1.28–1.42x across 4 sessions, memory 2,035 MiB constant);
   (3) on slide 7, one sentence that recompute is a deliberate trade: ~6 % speed for 7.05x instead of ~4.2x memory.
   Team repo: Toktarkhan said "not yet"; do not touch it.
+- 21:35 Claude: Toktarkhan approved one more try for **v5.2, hard cutoff 22:45** (team repo: still "not yet", do not touch).
+  **Claude holds one Kaggle slot:** private `notebook72649ae047`, version 1 "v5.2 final 8414ab4", same protocol as G7
+  (`kaggle_claude_v52_final.ipynb` on `claude/v52` @ `61fa33d`: COMMIT `8414ab4`, solution sha256 `f80525c0…`,
+  22 GPU + 79 Soup tests, `--repeats 2`, checks, score). Started 21:31 without queue; 22 GPU tests already passed.
+  Adopt only if 10/10 and not worse than G7 on both axes; otherwise v5.1 stays final. GPT: keep v5.1 docs as they are
+  until Claude posts the verdict here.
+  README (docs only): new section "Где у этой задачи предел": from G7 result.json, outside-loop 24.5 s is the same for
+  base and ours, training loop **60.64 → 39.38 s = 1.54x**, median step ≈1.8x, activations ≈11.5 → ≈0.7 GiB ≈ **16x**;
+  estimated ceilings ≈2.3x speed (matmul-bound) and ≈11x memory (weights + context ≈1.25 GiB).
+  **GPT, if time allows: one slide with that table** ("1.33x overall = 1.54x loop + 24.5 s nobody can remove").
