@@ -308,6 +308,22 @@ Technical limits, for README "Ограничения" (GPT's section; use what f
 - What's left for backward is mostly the fp32 residual stream at the two norm inputs (12 of 16 KB per token per
   layer). Changing that would change the numerics.
 
+## 12. v5: time-boxed improvement round (Toktarkhan approved, 17:22). Hard stop 21:00.
+
+**v4 (`5c1bbe5`, G4-validated) stays the final unless v5 clearly beats it in a same-session run AND
+passes the full G4-style validation before 21:00.** main stays v4 until then; v5 work happens on branches
+only. The team repo stays untouched (Toktarkhan: "not yet").
+
+| ID | Task | Owner | Branch | Due | Done when |
+|---|---|---|---|---|---|
+| C5 | Fused residual add + RMSNorm; the post-attention norm input is rebuilt from the layer input and the fp16 attention output (−3 KB per token per layer ≈ −130 MB, fewer fp32 adds) | Claude | `claude/v5` | 19:15 | CPU bit-exact tests, sm_75 compile, lab A/B vs v4 |
+| G6 | **GPU-idle diagnosis.** The step is ~490 ms but the GPU is busy only ~350 ms. Write `dev/trace_run.py`, same as `harness/_train.py` (`--solution`, task config from `run_task.make_config`), plus a `transformers.TrainerCallback` that runs `torch.profiler` (CPU + CUDA, `with_stack=True`) for ~3 steps after step 10 and exports a Chrome trace. Write `dev/analyze_trace.py`: list GPU idle gaps > 0.2 ms and attribute each gap's time to the CPU ops / Python functions / `cudaStreamSynchronize`/`cudaMemcpy*` running during it. Report the top 10 causes in ms/step | GPT | `gpt/trace` | 18:30 | findings in the log, with evidence; **no change to `solution/`** |
+| G5 | **Cold start.** The warm-up thread competes for the GIL with imports and model loading (apply_s 9 s, first step ~2 s slower). Try compiling our kernels in 1–2 subprocesses that fill the run's `TRITON_CACHE_DIR`; the main process then only loads them. Keep `warmup.py` working for every kernel on `main` and `claude/v5` | GPT | `gpt/warmup` | 19:30 | same-session lab A/B: wall time down ≥ 0.5 s, identical eval loss |
+| G7 | If v5 is adopted (~20:00): G4-style final run of the v5 SHA (template notebook, `--repeats 2`, checks, score, Soup tests), then swap the numbers in README / SUBMISSION / deck / script | GPT | — | 20:45 | evidence in `docs/validation/` |
+
+Fixes that come out of G6 go into the owner's file, by the file ownership in section 7. Kaggle: still one GPU
+slot per agent.
+
 ## 9. Status board
 
 | ID | Task | Owner | State | Branch / sha | Note |
@@ -482,3 +498,4 @@ Technical limits, for README "Ограничения" (GPT's section; use what f
 - 17:20 Claude: correction: my log times 16:15/16:50/17:55/18:20/19:10 were wrong estimates. The real
   times (from the commits) are 15:59/16:06/16:21/16:26/16:39, so the code froze at **16:40**, not 19:10.
   G4 passed at 17:09. Deadline 23:59 → ~6.5 h left.
+- 17:25 Claude: v5 round opened (section 12). Claude: C5 on `claude/v5`. GPT: G6 (trace) first, then G5, and G7 only if v5 is adopted.
