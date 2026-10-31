@@ -159,3 +159,29 @@ def test_add_rmsnorm_matches_add_then_norm():
     torch.autograd.backward([h2, y2], [g_h, g_y])
     assert torch.equal(h1, h2) and torch.equal(y1, y2)
     assert torch.equal(r1.grad, r2.grad) and torch.equal(d1.grad, d2.grad)
+
+
+def test_varlen_attention_matches_per_row():
+    """VarlenSDPA (one varlen launch over all rows) vs PackedSDPA (per-row SDPA), fp16 on the GPU."""
+    from solution.varlen import PackedSDPA, VarlenSDPA, _varlen_available
+
+    if not _varlen_available():
+        pytest.skip("no varlen memory-efficient attention in this PyTorch")
+    torch.manual_seed(0)
+    hq, hk, d = 12, 2, 128
+    spans = [(0, 401), (401, 77), (478, 512), (990, 3)]
+    n = sum(length for _, length in spans)
+    q = torch.randn(1, hq, n, d, device="cuda").half()
+    k = torch.randn(1, hk, n, d, device="cuda").half()
+    v = torch.randn(1, n, hk, d, device="cuda").half().transpose(1, 2)
+    g = torch.randn(1, n, hq, d, device="cuda").half()
+    cu = torch.tensor([s for s, _ in spans] + [n], dtype=torch.int32, device="cuda")
+    ref_in = [t.detach().clone().requires_grad_(True) for t in (q, k, v)]
+    ref = PackedSDPA.apply(*ref_in, spans, hq // hk, d ** -0.5)
+    ref.backward(g)
+    our_in = [t.detach().clone().requires_grad_(True) for t in (q, k, v)]
+    ours = VarlenSDPA.apply(*our_in, cu, max(length for _, length in spans), hq // hk, d ** -0.5)
+    ours.backward(g)
+    torch.testing.assert_close(ours, ref, rtol=1e-3, atol=1e-3)
+    for a, b in zip(our_in, ref_in):  # SDPA's backward itself is not bit-deterministic
+        torch.testing.assert_close(a.grad, b.grad, rtol=2e-3, atol=2e-3)
