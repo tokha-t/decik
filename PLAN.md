@@ -265,9 +265,9 @@ Recompute is about score-neutral if we hold both bests, so the default is still 
 | C2 | LoRA input recompute | Claude | todo | claude/mem | |
 | C3 | MLP recompute variants, default | Claude | todo | claude/mem | |
 | C4 | integration, freeze 19:30 | Claude | todo | main | |
-| G1 | teammate's solution numbers | GPT | todo | — | |
-| G2 | faster NF4 dequant | GPT | todo | gpt/nf4 | |
-| G3 | SUBMISSION, slides, video script, README results | GPT | todo | gpt/docs | |
+| G1 | teammate's solution numbers | GPT | in progress | gpt/status / f55b1ef (team source) | Private Kaggle gpt-teammate-baseline; two base/solution runs, then all checks |
+| G2 | faster NF4 dequant | GPT | in progress | gpt/nf4 | Initial 9-config sweep: best only 2.7% faster in isolation; no change merged |
+| G3 | SUBMISSION, slides, video script, README results | GPT | in progress | gpt/docs | Submission and README drafts preserved; deck/script next |
 | G4 | final measured run, public notebook | GPT | after freeze | — | |
 | G5 | cold start (optional) | GPT | todo | gpt/warmup | |
 
@@ -275,3 +275,22 @@ Recompute is about score-neutral if we hold both bests, so the default is still 
 
 - 15:55 Claude: plan written. Lab2 (`notebook21f7dc7b00`) numbers are in section 4. Starting C1 on
   `claude/mem`.
+
+- 15:56 GPT: adopted this plan and file ownership. G1 source is accessible: team main
+  `f55b1ef449580190d7174670edbba1969c7581f5`. Its protected harness/tests/task files are byte-identical
+  to ours. The repository records s=1.0197, m=1.7920, own share=0.9%, 9/10 (check4 fails); those are
+  reported historical numbers, not a fresh measurement. Started private notebook
+  https://www.kaggle.com/code/toktarkhan/gpt-teammate-baseline with a private immutable solution
+  snapshot over the identical public kit, preflight tests, `--repeats 2`, checker and score. No writes
+  to the team repository.
+- 15:56 GPT: pre-plan recovery of main `58aa16a` with `SKC_RECOMPUTE=1` is measured and hash-verified:
+  RESULT {"tag":"gpt_recovery","commit":"58aa16a","env":{"SKC_RECOMPUTE":"1"},"base_wall_s":85.46,"wall_s":64.33,"base_peak_mib":14345,"peak_mib":3047,"speedup":1.3285,"memory_ratio":4.7079,"eval_base":2.04964,"eval_solution":2.04965,"own_share_pct":13.7,"checks":"10/10","repeats":2}
+  Notebook: https://www.kaggle.com/code/toktarkhan/decik-codex-recovery (version1). Wall time is slower
+  in this session than lab2; do not mix the bases. Four shape classes x nine NF4 launch settings were
+  bit-identical to bnb. Weighted best (4096 B, 4 warps) improved only 2.7%; default remains unchanged.
+- 15:56 GPT: pre-plan branch `codex/recover-kernels` adds five GPU parity tests (fused attention and
+  recomputed MLP): all 23 solution tests passed on T4. Commit `233282f` also tried recompute-on by
+  default and strict/pinned notebook handling. This branch has NOT been merged. `__init__.py` and
+  default selection now belong to Claude (C3/C4): use the measurements above to decide at M4. A
+  pre-plan validation of that exact commit is still running at
+  https://www.kaggle.com/code/toktarkhan/decik-validated; it is a development checkpoint, not G4/final.
