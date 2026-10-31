@@ -1,0 +1,19 @@
+PASS [head only] logits not materialized
+PASS [head only] loss  5.726623 vs 5.726621
+PASS [head only] entropy  5.689750 vs 5.689750
+PASS [head only] accuracy  0.0000 vs 0.0000
+PASS [head only] rewind row losses  rel 3.25e-06
+PASS [head only] LoRA grads (same dropout draws)  worst rel 3.24e-04 over 8 tensors
+PASS [head + varlen] logits not materialized
+PASS [head + varlen] loss  5.726623 vs 5.726621
+PASS [head + varlen] entropy  5.689750 vs 5.689750
+PASS [head + varlen] accuracy  0.0000 vs 0.0000
+PASS [head + varlen] rewind row losses  rel 3.25e-06
+PASS [head + varlen] LoRA grads (same dropout draws)  worst rel 3.24e-04 over 8 tensors
+PASS [varlen vs padded] LoRA grads identical up to fp32 rounding  worst rel 2.91e-07
+PASS eval forward untouched (logits returned)
+
+ALL MODEL TESTS PASSED
+
+/usr/local/lib/python3.13/dist-packages/triton/runtime/interpreter.py:490: RuntimeWarning: invalid value encountered in multiply
+  output = op(lhs.data, rhs.data)

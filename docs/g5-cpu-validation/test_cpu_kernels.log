@@ -1,0 +1,31 @@
+PASS nf4 dequant nested=True (96, 128)  max|diff|=0 dtype=torch.float16
+PASS nf4 dequant nested=True (256, 2560)  max|diff|=0 dtype=torch.float16
+PASS nf4 dequant nested=False (96, 128)  max|diff|=0 dtype=torch.float16
+PASS nf4 dequant nested=False (256, 2560)  max|diff|=0 dtype=torch.float16
+PASS rmsnorm fwd 7x1536  max|diff|=0
+PASS rmsnorm bwd 7x1536  max|diff|=4.77e-07
+PASS rmsnorm fwd 3x100  max|diff|=0
+PASS rmsnorm bwd 3x100  max|diff|=2.38e-07
+PASS head loss V=300  5.610001 vs 5.610000
+PASS head entropy V=300  max|diff|=1.43e-06
+PASS head token loss V=300
+PASS head argmax hits V=300  0 hits
+PASS head grad V=300  max|diff|=9.77e-05 max|g|=0.219
+PASS head loss V=64  3.728805 vs 3.728805
+PASS head entropy V=64  max|diff|=1.19e-06
+PASS head token loss V=64
+PASS head argmax hits V=64  0 hits
+PASS head grad V=64  max|diff|=0 max|g|=0.253
+PASS head loss V=1000  7.087949 vs 7.087948
+PASS head entropy V=1000  max|diff|=2.38e-06
+PASS head token loss V=1000
+PASS head argmax hits V=1000  0 hits
+PASS head grad V=1000  max|diff|=0 max|g|=0.166
+PASS head argmax tie -> first index  [1, 0]
+
+ALL KERNEL TESTS PASSED
+
+/usr/local/lib/python3.13/dist-packages/triton/runtime/interpreter.py:490: RuntimeWarning: invalid value encountered in multiply
+  output = op(lhs.data, rhs.data)
+/usr/local/lib/python3.13/dist-packages/triton/runtime/interpreter.py:490: RuntimeWarning: invalid value encountered in subtract
+  output = op(lhs.data, rhs.data)

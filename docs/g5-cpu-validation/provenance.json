@@ -1,0 +1,26 @@
+{
+  "source_commit": "dfe0ad612265c02d7ded3bd8a99037f943fa87a3",
+  "notebook": "https://www.kaggle.com/code/toktarkhan/gpt-warmup-cpu?scriptVersionId=364238415",
+  "note": "Provenance recorded locally; original downloaded logs preserved. CPU-only job, no GPU slot.",
+  "cpu_suites": [
+    "test_cpu_kernels",
+    "test_cpu_model",
+    "test_cpu_trainer",
+    "test_cpu_attn",
+    "test_cpu_bnb",
+    "test_cpu_recompute"
+  ],
+  "sha256": {
+    "test_cpu_kernels.log": "d094cfc2510492b26dd888634b9b0036f65894d58dc23aa9fac125a2917295fc",
+    "test_cpu_recompute.log": "a3bb8cf9106c934426376b2de769e6f08057a45b3eba618336b4ab5b640e1435",
+    "test_cpu_model.log": "60371d15c7f77ee4a1a94d5f339c3d91f692cc29a13d571546eaf966a07a496c",
+    "compile_sm75.log": "11c40c631eb91891ac03287627d4039647a8c17fceffe91c1a4f0e4816ba348f",
+    "test_cpu_bnb.log": "37f5a4696c296269ff4e7638baf4974f62771137a73b64c7c83c11cecdd0a0a7",
+    "test_cpu_attn.log": "48be7f4604709aeae7b34140cf530413a787b4d24ee54fc8dbf694871dce053b",
+    "test_cpu_trainer.log": "0cc280ca70bd14c423e978ff3b5c0a555633f535fd529e9a67aa0ba1a4e32430"
+  },
+  "torch_version_printed": "2.11.0+cpu",
+  "triton_version_printed": "3.6.0",
+  "numpy_install_pin": "2.2.6",
+  "numpy_note": "The notebook kernel printed its preloaded NumPy 2.1.3 module. Tests ran in fresh Python subprocesses after pip successfully installed the 2.2.6 pin."
+}

@@ -1,0 +1,14 @@
+PASS rope fwd q bit-exact
+PASS rope fwd k bit-exact
+PASS rope bwd q bit-exact  max 0.00126
+PASS rope bwd k bit-exact
+PASS rope bwd lora grad = projection grad
+PASS fused attention path taken  2 calls
+PASS LoRA pair from the norm taken  2 calls
+PASS packed SDPA with recompute taken  2 calls
+PASS loss vs unfused  5.643193 vs 5.642782
+PASS LoRA grads vs unfused (q/k/v rounded to fp16 as on GPU)  worst rel 1.50e-02
+ATTN TESTS PASSED
+
+/usr/local/lib/python3.13/dist-packages/triton/runtime/interpreter.py:490: RuntimeWarning: invalid value encountered in multiply
+  output = op(lhs.data, rhs.data)

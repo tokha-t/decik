@@ -1,0 +1,6 @@
+PASS v1 vs base out: bit-identical=True max|diff|=0
+PASS v1 vs base grad: bit-identical=True max|diff|=0
+PASS recompute vs v1 out: bit-identical=True max|diff|=0
+PASS recompute vs v1 grad: bit-identical=True max|diff|=0
+RECOMPUTE TESTS PASSED
+

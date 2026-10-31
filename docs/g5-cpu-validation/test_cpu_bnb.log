@@ -1,0 +1,7 @@
+PASS mlp output  rel 0.00e+00, dtype ours torch.float16 base torch.float32
+PASS mlp input grad  rel 0.00e+00, dtype ours torch.float32 base torch.float32
+PASS linear+bias output  rel 0.00e+00, dtype ours torch.float32 base torch.float32
+PASS linear+bias input grad  rel 0.00e+00, dtype ours torch.float32 base torch.float32
+
+BNB TESTS PASSED
+

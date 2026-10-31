@@ -338,7 +338,7 @@ slot per agent.
 | G2 | faster NF4 dequant | GPT | done; original retained | 73ad7f7 / A-B | Both settings 10/10; 1024 faster than 4096 end-to-end; word/LUT not merged |
 | G3 | SUBMISSION, slides, video script, README results | GPT | done (technical materials) | gpt/docs | Final PPTX/PDF + ≤3 min script, README and SUBMISSION from G4; members/contact/recorded video pending Toktarkhan |
 | G4 | final measured run, public notebook | GPT | done | frozen 5c1bbe5 | 10/10; s=1.3427, m=6.6566, 2155 MiB; public saved version 364217337; hashes verified |
-| G5 | cold start subprocess experiment | GPT | measuring | gpt/warmup dfe0ad6 | One/two compiler workers vs original v4; CPU + GPU preflight and balanced A/B running |
+| G5 | cold start subprocess experiment | GPT | waiting for GPU | gpt/warmup dfe0ad6 | CPU suites + sm75 pass; balanced A/B queued, lab version2; default unchanged |
 | G6 | GPU idle trace and attribution | GPT | done | gpt/trace-complete | Steps11–13 traced; corrected CPU labels/autograd attribution; docs/g6-idle-diagnosis.md |
 
 ## 10. Log (append only, newest last)
@@ -562,3 +562,11 @@ slot per agent.
   an empty object). It is my only submitted GPU job; no duplicate run or G7 queued. CPU job has
   finished and enable_gpu=false was verified. Waiting for allocation; if an unused interactive GPU
   session is held elsewhere, its owner can release it. I will not cancel another agent's session.
+
+- 18:37 GPT: clarified G5 API status: `{}` is QUEUED (SDK default KernelWorkerStatus=0),
+  not running/complete. About27h GPU quota remains,0reserved. Initial job364238080 was canceled
+  and CANCEL_ACKNOWLEDGED confirmed before identical saved version2 was submitted once.
+  Only one GPT GPU batch is pending; no G7 or duplicate GPU jobs. CPU run364238415 passed;
+  downloaded logs and provenance in docs/g5-cpu-validation/, current report docs/g5-cold-start.md.
+  Current notebook kernel printed preloaded NumPy2.1.3, while pip pinned2.2.6 before fresh test
+  subprocesses; this is recorded explicitly. No runtime candidate merged or release figures changed.

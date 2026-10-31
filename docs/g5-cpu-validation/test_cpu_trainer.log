@@ -1,0 +1,71 @@
+{'loss': '11.95', 'grad_norm': '0.0512', 'learning_rate': '0.01', 'entropy': '11.92', 'num_tokens': '121', 'mean_token_accuracy': '0', 'epoch': '0.25'}
+{'loss': '11.96', 'grad_norm': '0.1316', 'learning_rate': '0.0075', 'entropy': '11.92', 'num_tokens': '221', 'mean_token_accuracy': '0', 'epoch': '0.5'}
+{'loss': '11.92', 'grad_norm': '0.09791', 'learning_rate': '0.005', 'entropy': '11.92', 'num_tokens': '304', 'mean_token_accuracy': '0', 'epoch': '0.75'}
+{'loss': '11.94', 'grad_norm': '0.08254', 'learning_rate': '0.0025', 'entropy': '11.92', 'num_tokens': '417', 'mean_token_accuracy': '0', 'epoch': '1'}
+{'train_runtime': '10.52', 'train_samples_per_second': '1.52', 'train_steps_per_second': '0.38', 'train_loss': '11.94', 'epoch': '1'}
+{'loss': '11.95', 'grad_norm': '0.05124', 'learning_rate': '0.01', 'entropy': '11.92', 'num_tokens': '121', 'mean_token_accuracy': '0', 'epoch': '0.25'}
+{'loss': '11.96', 'grad_norm': '0.1317', 'learning_rate': '0.0075', 'entropy': '11.92', 'num_tokens': '221', 'mean_token_accuracy': '0', 'epoch': '0.5'}
+{'loss': '11.92', 'grad_norm': '0.09809', 'learning_rate': '0.005', 'entropy': '11.92', 'num_tokens': '304', 'mean_token_accuracy': '0', 'epoch': '0.75'}
+{'loss': '11.94', 'grad_norm': '0.08261', 'learning_rate': '0.0025', 'entropy': '11.92', 'num_tokens': '417', 'mean_token_accuracy': '0', 'epoch': '1'}
+{'train_runtime': '49.22', 'train_samples_per_second': '0.325', 'train_steps_per_second': '0.081', 'train_loss': '11.94', 'epoch': '1'}
+PASS loss: ours [11.945615768432617, 11.955352783203125, 11.917984008789062, 11.942811012268066]
+      base [11.945596694946289, 11.955376625061035, 11.917986869812012, 11.94279956817627]
+PASS entropy: ours [11.924821837874484, 11.92482421875, 11.924824542309864, 11.924826292865044]
+      base [11.924820899963379, 11.924822807312012, 11.924823760986328, 11.924823760986328]
+PASS mean_token_accuracy: ours [0.0, 0.0, 0.0, 0.0]
+      base [0.0, 0.0, 0.0, 0.0]
+PASS num_tokens: ours [121.0, 221.0, 304.0, 417.0]
+      base [121.0, 221.0, 304.0, 417.0]
+PASS logged keys ['entropy', 'epoch', 'grad_norm', 'learning_rate', 'loss', 'mean_token_accuracy', 'num_tokens', 'step']
+PASS rewind hook set (token_loss [B, S])
+
+TRAINER TEST PASSED
+
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+[transformers] The tokenizer has new PAD/BOS/EOS tokens that differ from the model config and generation config. The model config and generation config were aligned accordingly, being updated with the tokenizer's values. Updated tokens: {'eos_token_id': 151645, 'pad_token_id': 151643}.
+
+  0%|          | 0/4 [00:00<?, ?it/s]
+ 25%|██▌       | 1/4 [00:02<00:08,  2.93s/it]
+                                             
+
+ 25%|██▌       | 1/4 [00:02<00:08,  2.93s/it]
+ 50%|█████     | 2/4 [00:05<00:05,  2.82s/it]
+                                             
+
+ 50%|█████     | 2/4 [00:05<00:05,  2.82s/it]
+ 75%|███████▌  | 3/4 [00:07<00:02,  2.49s/it]
+                                             
+
+ 75%|███████▌  | 3/4 [00:07<00:02,  2.49s/it]
+100%|██████████| 4/4 [00:10<00:00,  2.59s/it]
+                                             
+
+100%|██████████| 4/4 [00:10<00:00,  2.59s/it]
+                                             
+
+100%|██████████| 4/4 [00:10<00:00,  2.59s/it]
+100%|██████████| 4/4 [00:10<00:00,  2.63s/it]
+
+  0%|          | 0/4 [00:00<?, ?it/s]/usr/local/lib/python3.13/dist-packages/triton/runtime/interpreter.py:490: RuntimeWarning: invalid value encountered in multiply
+  output = op(lhs.data, rhs.data)
+
+ 25%|██▌       | 1/4 [00:14<00:43, 14.58s/it]
+                                             
+
+ 25%|██▌       | 1/4 [00:14<00:43, 14.58s/it]
+ 50%|█████     | 2/4 [00:25<00:24, 12.39s/it]
+                                             
+
+ 50%|█████     | 2/4 [00:25<00:24, 12.39s/it]
+ 75%|███████▌  | 3/4 [00:35<00:11, 11.52s/it]
+                                             
+
+ 75%|███████▌  | 3/4 [00:35<00:11, 11.52s/it]
+100%|██████████| 4/4 [00:49<00:00, 12.22s/it]
+                                             
+
+100%|██████████| 4/4 [00:49<00:00, 12.22s/it]
+                                             
+
+100%|██████████| 4/4 [00:49<00:00, 12.22s/it]
+100%|██████████| 4/4 [00:49<00:00, 12.30s/it]
