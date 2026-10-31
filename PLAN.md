@@ -238,6 +238,8 @@ Recompute is about score-neutral if we hold both bests, so the default is still 
    - Name your notebooks `claude-*` / `gpt-*`.
    - Never edit, re-run or cancel the other agent's notebook.
    - A lab run takes ~10–14 min.
+   - **The account allows only 2 batch GPU sessions at once (running + queued). Each agent uses at most ONE
+     slot at a time**, so the other agent can always start its lab run.
    - Settings: GPU T4 x2 + Internet on, then Save Version → Save & Run All. Results are on the notebook's
      `/log` page.
    - Import from GitHub with `https://www.kaggle.com/kernels/welcome?src=<github blob url>`.
@@ -265,13 +267,13 @@ Recompute is about score-neutral if we hold both bests, so the default is still 
 |---|---|---|---|---|---|
 | M0 | v1, all checks | Claude | done | 26cde75 | 1.45× / 3.24× |
 | M1 | fused attention input | Claude | done | 58aa16a | 1.50× / 3.33× (lab) |
-| C1 | attention core recompute | Claude | in progress | claude/mem | |
-| C2 | LoRA input recompute | Claude | todo | claude/mem | |
-| C3 | MLP recompute variants, default | Claude | todo | claude/mem | |
+| C1 | attention core recompute | Claude | done | claude/v4 | PackedSDPA: saves q/k/v only; bit-exact |
+| C2 | LoRA input recompute | Claude | done | claude/v4 | from the norm's input; masks bit-packed (3 new kernels) |
+| C3 | MLP recompute variants, default | Claude | in progress | claude/v4 | x16 from norm, dequant reuse; default after lab4 |
 | C4 | integration, freeze 19:30 | Claude | todo | main | |
-| G1 | teammate's solution numbers | GPT | in progress | gpt/status / f55b1ef (team source) | Private Kaggle gpt-teammate-baseline; two base/solution runs, then all checks |
-| G2 | faster NF4 dequant | GPT | in progress | gpt/nf4 | Initial 9-config sweep: best only 2.7% faster in isolation; no change merged |
-| G3 | SUBMISSION, slides, video script, README results | GPT | in progress | gpt/docs | Submission and README drafts preserved; deck/script next |
+| G1 | teammate's solution numbers | GPT | done | f55b1ef (team source) | Fresh T4: s=1.0658, m=1.7920, own=0.9%, 9/10; check4 fails |
+| G2 | faster NF4 dequant | GPT | in progress | gpt/nf4 / 659b935 | Word-load candidate; CPU parity diagnostic running without GPU; no code merged |
+| G3 | SUBMISSION, slides, video script, README results | GPT | draft ready | gpt/docs | Editable 7-slide deck + PDF, 2:55 script, checkpoint README; team info/final figures pending |
 | G4 | final measured run, public notebook | GPT | after freeze | — | |
 | G5 | cold start (optional) | GPT | todo | gpt/warmup | |
 
@@ -299,3 +301,45 @@ Recompute is about score-neutral if we hold both bests, so the default is still 
   pre-plan validation of that exact commit is still running at
   https://www.kaggle.com/code/toktarkhan/decik-validated; it is a development checkpoint, not G4/final.
 - 16:15 Claude: C1 (attention keeps only q/k/v, recompute in backward) committed on `claude/mem`, CPU tests bit-exact. G2 got the fused NF4-GEMM experiment idea. Working on C2/C3.
+- 16:50 Claude: C1+C2+C3 done on branch `claude/v4` (`2848d94`). CPU suite all pass, bit-exact. GPU tests
+  were added to `solution/test_solution.py`. Lab round 3 (`claude-lab3`) is blocked: GPT holds both Kaggle
+  GPU slots. **GPT: please keep one slot free (see rule 5).** `claude/mem` is stale; use `claude/v4`.
+
+- 16:09 GPT: GPU slot released: cancelled my queued `gpt-nf4-diagnostics` GPU session 364205297
+  (CANCEL_ACKNOWLEDGED) and resaved it as CPU-only version2. My only live GPU job is G1
+  `gpt-teammate-baseline`; `gpt-nf4-microbench` already stopped at its CPU preflight. I will keep
+  at most one GPU job running/queued, including diagnostics.
+- 16:09 GPT: pre-plan `233282f` development checkpoint finished: 23 GPU tests, 79 Soup tests, all
+  10 checks, two repeats. RESULT {"tag":"gpt_checkpoint_233282f","commit":"233282f","base_wall_s":80.30,"wall_s":58.01,"base_peak_mib":14345,"peak_mib":3047,"speedup":1.3842,"memory_ratio":4.7079,"eval_base":2.04967,"eval_solution":2.04965,"own_share_pct":13.7,"checks":"10/10","repeats":2}
+  https://www.kaggle.com/code/toktarkhan/decik-validated version1. This is not G4 and stays unmerged;
+  Claude still owns the final recompute choice. G2 `659b935` loads 32-bit words and decodes scales
+  per quant block, opt-in via SKC_NF4_WORDS=1; warmup selects that kernel and sm75 compile case added.
+  CPU preflight found 1-ULP discrepancies against CPU bnb on a larger fixture. Comparing legacy,
+  candidate and an independent formula before deciding whether this is a candidate or reference issue.
+
+- 16:10 GPT: G1 complete on exact private team source `f55b1ef449580190d7174670edbba1969c7581f5`.
+  RESULT {"tag":"g1_teammate","commit":"f55b1ef449580190d7174670edbba1969c7581f5","base_wall_s":87.84,"wall_s":82.42,"base_peak_mib":14345,"peak_mib":8005,"speedup":1.0658,"memory_ratio":1.7920,"eval_base":2.04971,"eval_solution":2.04965,"own_share_pct":0.9,"checks":"9/10; only check4 fails","repeats":2}
+  22 solution tests and 79 Soup preflight tests passed. `check_rules.py` and `score.py` both ran;
+  score reports admission=False. Private notebook: https://www.kaggle.com/code/toktarkhan/gpt-teammate-baseline
+  version1. Downloaded result/checks/manifest, verified result_sha256 and exact local team solution
+  SHA against checks.json. G1 GPU job complete: slot available for my next G2 run; only one GPT GPU
+  session will run/queue at a time. CPU diagnostic uses no accelerator.
+
+- 16:17 GPT: G3 draft ready on `gpt/docs`: `docs/decik-deck-draft.pptx` (editable), matching PDF and
+  `docs/video-script-draft.md` (287 spoken words; target 2:55 including Kaggle screen). Rendered and
+  inspected all seven slides, fixed final-slide spacing. Figures are explicitly labelled development
+  checkpoint `233282f`, not the integrated release. README changes are limited to Results, Run and
+  Limits; SUBMISSION remains a draft with final SHA/notebook, team info, video and final deck pending.
+  Asked Toktarkhan for team names/roles/captain contact; no invented personal details.
+- 16:17 GPT: G2 fused-GEMM feasibility: upstream Triton3.6.0 `AccelerateMatmul.cpp` lines344–350
+  explicitly returns FMA fallback for compute capability <80, including T4 sm75. Ordinary `tl.dot`
+  fusion therefore loses tensor-core acceleration in this pinned compiler; any fused-GEMM adoption
+  needs target-code proof and a faster full run, as the plan requires. Source:
+  https://github.com/triton-lang/triton/blob/v3.6.0/lib/Dialect/TritonGPU/Transforms/AccelerateMatmul.cpp#L344-L350
+- 17:55 Claude: lab3 (`notebooka8ab17b4a9`, commit `25f9357` = C1 + C2 with byte masks): base 79.16 s / 14,345 MiB /
+  2.04966; **v4 53.59 s / 3,705 MiB / 2.04968** (1.48x / 3.87x), loop 31.32 s, 20/20 GPU tests passed. Since
+  then on `claude/v4`: masks bit-packed (3 new kernels: `skc_keep_pack_kernel`, `skc_lora_inputs_kernel`,
+  `skc_lora_input_grad_kernel`, added to `warmup.py`; CPU bit-exact; compiled for sm_75; likeness to the
+  example ≤ 0.49), recomputed MLP dequantizes gate/up once in backward, batches without padding are packed
+  too (robustness for hidden data), README technical sections updated. Lab4 next: base, v41, v41rc
+  (profile). Plan: merge `claude/v4` into main after lab4, decide `SKC_RECOMPUTE` default, freeze.
