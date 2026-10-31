@@ -18,7 +18,9 @@ import torch
 import triton
 import triton.language as tl
 
-from . import warmup
+import torch.nn.functional as F
+
+from . import rmsnorm, warmup
 from ._state import STATE, on_gpu
 
 
@@ -124,6 +126,98 @@ class FusedQKRope(torch.autograd.Function):
         return dq, dq.clone(), dk, None, None, None, None
 
 
+class LoRAPairFromNorm(torch.autograd.Function):
+    """peft's LoRA branches of q_proj and v_proj, lora_B(lora_A(dropout(x))) * scaling under fp16
+    autocast, for x = the output of our RMSNorm, with the same ops in the same order.
+
+    For lora_A's weight gradient peft keeps fp16(dropout(x)): 3 KB per token per projection.
+    Here backward rebuilds it from the norm's input (kept by the norm for its own backward), the
+    norm kernel (bit-identical) and the dropout keep-mask, so only the mask is kept."""
+
+    @staticmethod
+    def forward(ctx, x, h, norm_weight, eps, scaled_q, keep_q, scale_q, scaled_v, keep_v, scale_v,
+                a_q, b_q, a_v, b_v, scaling_q, scaling_v, p_q, p_v):
+        outs, us = [], []
+        for scaled, a, b, scaling in ((scaled_q, a_q, b_q, scaling_q), (scaled_v, a_v, b_v, scaling_v)):
+            xd = x * scaled if scaled is not None else x
+            u = F.linear(xd.to(torch.float16), a.to(torch.float16))
+            outs.append(F.linear(u, b.to(torch.float16)) * scaling)
+            us.append(u)
+        ctx.save_for_backward(h, norm_weight, keep_q, scale_q, keep_v, scale_v, us[0], us[1],
+                              a_q, b_q, a_v, b_v)
+        ctx.eps, ctx.scalings, ctx.ps = eps, (scaling_q, scaling_v), (p_q, p_v)
+        return outs[0], outs[1]
+
+    @staticmethod
+    def backward(ctx, grad_q, grad_v):
+        h, norm_weight, keep_q, scale_q, keep_v, scale_v, u_q, u_v, a_q, b_q, a_v, b_v = \
+            ctx.saved_tensors
+        x = rmsnorm.recompute(h, norm_weight, ctx.eps)
+        width = x.shape[-1]
+        grad_x, grads = None, []
+        branches = ((grad_q, keep_q, scale_q, u_q, a_q, b_q, ctx.scalings[0], ctx.ps[0]),
+                    (grad_v, keep_v, scale_v, u_v, a_v, b_v, ctx.scalings[1], ctx.ps[1]))
+        for grad, keep, scale, u, a, b, scaling, p in branches:
+            if grad is None:
+                grads += [None, None]
+                continue
+            # the same products autograd forms for out = (u @ b16^T) * scaling, u = x16 @ a16^T
+            g = (grad * scaling).reshape(-1, grad.shape[-1])
+            u2 = u.reshape(-1, u.shape[-1])
+            grad_b = g.t().mm(u2)
+            grad_u = g.mm(b.to(torch.float16))
+            xd = x * (keep * scale) if keep is not None else x
+            x16 = xd.to(torch.float16).reshape(-1, width)
+            grad_a = grad_u.t().mm(x16)
+            gx = grad_u.mm(a.to(torch.float16)).to(torch.float32)
+            if keep is not None:
+                gx = gx * keep.reshape(-1, width) * (1.0 / (1.0 - p))
+            grad_x = gx if grad_x is None else grad_x + gx
+            grads += [grad_a.to(torch.float32), grad_b.to(torch.float32)]
+        return (grad_x.view(x.shape), None, None, None, None, None, None, None, None, None,
+                grads[0], grads[1], grads[2], grads[3], None, None, None, None)
+
+
+def _lora_parts(layer, name):
+    """(lora_A weight, lora_B weight, scaling, dropout p) of a plain peft LoRA branch, else None."""
+    try:
+        lora_a, lora_b = layer.lora_A[name], layer.lora_B[name]
+        dropout, scaling = layer.lora_dropout[name], layer.scaling[name]
+    except (AttributeError, KeyError, TypeError):
+        return None
+    if not (type(lora_a) is torch.nn.Linear and type(lora_b) is torch.nn.Linear
+            and lora_a.bias is None and lora_b.bias is None
+            and isinstance(scaling, (int, float)) and not isinstance(scaling, bool)):
+        return None
+    if type(dropout) is torch.nn.Identity:
+        p = 0.0
+    elif (type(dropout) is torch.nn.Dropout and dropout.training and not dropout.inplace
+          and 0.0 < dropout.p < 1.0):
+        p = float(dropout.p)
+    else:
+        return None
+    a, b = lora_a.weight, lora_b.weight
+    if not (a.dtype == torch.float32 and b.dtype == torch.float32 and on_gpu(a) and on_gpu(b)):
+        return None
+    return a, b, float(scaling), p
+
+
+def _lora_pair(x, link, parts_q, parts_v, packing):
+    """q and v LoRA deltas through LoRAPairFromNorm; dropout draws in the base's order (q, v)."""
+    _, h, norm_weight, eps = link
+    draws = []
+    for _, _, _, p in (parts_q, parts_v):
+        if p == 0.0:
+            draws.append((None, None, None))
+            continue
+        scaled, keep = packing.dropout_draw(p, x.shape[-1], x.dtype, x.device)
+        draws.append((scaled.view(x.shape), keep.view(x.shape), packing.dropout_scale(p, scaled)))
+    (sq, kq, cq), (sv, kv, cv) = draws
+    return LoRAPairFromNorm.apply(x, h, norm_weight, eps, sq, kq, cq, sv, kv, cv,
+                                  parts_q[0], parts_q[1], parts_v[0], parts_v[1],
+                                  parts_q[2], parts_v[2], parts_q[3], parts_v[3])
+
+
 def _single_lora(layer, lora_cls):
     """The active adapter name of a plain (vanilla, unmerged) peft LoRA layer, else None."""
     try:
@@ -147,7 +241,7 @@ def _lora_delta(layer, name, x):
     return layer.lora_B[name](layer.lora_A[name](layer.lora_dropout[name](x))) * layer.scaling[name]
 
 
-def patch():
+def patch(recompute_lora=True):
     import bitsandbytes as bnb
     from peft.tuners.lora.bnb import Linear4bit as LoraLinear4bit
     from peft.tuners.lora.layer import Linear as LoraLinear
@@ -189,12 +283,20 @@ def patch():
         n_heads = self.config.num_attention_heads
         n_kv = self.config.num_key_value_heads
         x = hidden_states
+        link = STATE.norm_link
+        parts_q = parts_v = None
+        if recompute_lora and link is not None and link[0] is x and link[1].shape == x.shape:
+            parts_q, parts_v = _lora_parts(self.q_proj, q_name), _lora_parts(self.v_proj, v_name)
         # Same call order as the base (q, k, v): the LoRA dropout draws stay in step.
         q_base = self.q_proj.base_layer(x.to(torch.float16))
-        q_lora = _lora_delta(self.q_proj, q_name, x)
+        if parts_q is None or parts_v is None:
+            q_lora = _lora_delta(self.q_proj, q_name, x)
         k = self.k_proj(x.to(torch.float16))
         v_base = self.v_proj.base_layer(x.to(torch.float16))
-        v_lora = _lora_delta(self.v_proj, v_name, x)
+        if parts_q is None or parts_v is None:
+            v_lora = _lora_delta(self.v_proj, v_name, x)
+        else:
+            q_lora, v_lora = _lora_pair(x, link, parts_q, parts_v, packing)
         # v in fp32 as the base adds it, then the fp16 SDPA input autocast would make.
         v = (v_base.float() + v_lora.float()).to(torch.float16)
         q_rot, k_rot = FusedQKRope.apply(

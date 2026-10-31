@@ -47,4 +47,4 @@ def apply():
         if _enabled("VARLEN"):
             varlen.patch(recompute_attention=_enabled("ATTN_RECOMPUTE"))
             if _enabled("ATTN"):
-                attn.patch()
+                attn.patch(recompute_lora=_enabled("LORA_RECOMPUTE"))

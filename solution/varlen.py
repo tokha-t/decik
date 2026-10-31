@@ -28,6 +28,7 @@ class Packing:
         self.batch, self.seq = batch, seq
         self.n_tokens = int(index.numel())
         self._ones = {}
+        self._scales = {}
 
     def dropout_draw(self, p, width, dtype, device):
         """What F.dropout draws for a [B, S, width] input, at the real tokens only: the scaled
@@ -40,6 +41,16 @@ class Packing:
         scaled, keep = torch.native_dropout(ones, p, True)
         return (scaled.reshape(-1, width).index_select(0, self.index),
                 keep.reshape(-1, width).index_select(0, self.index))
+
+    def dropout_scale(self, p, scaled):
+        """The kept value of a draw (1 / (1 - p) as the dropout kernel rounds it), as a 0-dim
+        tensor on the device: keep * scale rebuilds the draw's values exactly."""
+        key = (p, scaled.dtype, scaled.device)
+        scale = self._scales.get(key)
+        if scale is None:
+            scale = scaled.amax()
+            self._scales[key] = scale
+        return scale
 
 
 def _row_attention(q, k, v, groups, scale):
@@ -172,6 +183,7 @@ def patch(recompute_attention=True):
                                **kwargs)
         finally:
             STATE.packing_active = False
+            STATE.norm_link = None
         hidden = self.norm(hidden)
         return BaseModelOutputWithPast(last_hidden_state=hidden, past_key_values=None)
 

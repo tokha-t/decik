@@ -63,3 +63,77 @@ def test_head_matches_pytorch(tokens):
     torch.testing.assert_close(ent, -(logp.exp() * logp).sum(-1), rtol=1e-3, atol=1e-3)
     assert torch.equal(hit, ((logits.argmax(-1) == targets) & lab).int())
     torch.testing.assert_close(ours_grad, h.grad, rtol=2e-2, atol=2e-3)
+
+
+def test_packed_attention_recompute_matches_per_row_sdpa():
+    """PackedSDPA (q, k, v kept, rows recomputed in backward) vs per-row SDPA under autograd."""
+    import torch.nn.functional as F
+
+    from solution.varlen import PackedSDPA
+
+    torch.manual_seed(0)
+    hq, hk, d = 12, 2, 128
+    spans = [(0, 401), (401, 77), (478, 512), (990, 3)]
+    n = sum(length for _, length in spans)
+    q = torch.randn(1, hq, n, d, device="cuda").half()
+    k = torch.randn(1, hk, n, d, device="cuda").half()
+    v = torch.randn(1, n, hk, d, device="cuda").half().transpose(1, 2)
+    g = torch.randn(1, n, hq, d, device="cuda").half()
+
+    def per_row(q, k, v):
+        outs = []
+        for start, length in spans:
+            rows = slice(start, start + length)
+            outs.append(F.scaled_dot_product_attention(
+                q[:, :, rows], k[:, :, rows].repeat_interleave(hq // hk, dim=1),
+                v[:, :, rows].repeat_interleave(hq // hk, dim=1), is_causal=True))
+        return torch.cat(outs, dim=2).transpose(1, 2).contiguous()
+
+    ref_in = [t.detach().clone().requires_grad_(True) for t in (q, k, v)]
+    ref = per_row(*ref_in)
+    ref.backward(g)
+    our_in = [t.detach().clone().requires_grad_(True) for t in (q, k, v)]
+    ours = PackedSDPA.apply(*our_in, spans, hq // hk, None)
+    ours.backward(g)
+    assert torch.equal(ours, ref)
+    for a, b in zip(our_in, ref_in):  # SDPA's backward itself is not bit-deterministic
+        torch.testing.assert_close(a.grad, b.grad, rtol=2e-3, atol=2e-3)
+
+
+def test_lora_pair_from_norm_matches_peft_ops():
+    """q/v LoRA with the input rebuilt from the norm's input vs peft's ops under fp16 autocast."""
+    import torch.nn.functional as F
+
+    from solution.attn import LoRAPairFromNorm
+    from solution.rmsnorm import RMSNormFn
+
+    torch.manual_seed(0)
+    n, hidden, r = 700, 1536, 16
+    h = (torch.randn(1, n, hidden, device="cuda") * 3).requires_grad_(True)
+    w = torch.rand(hidden, device="cuda") + 0.5
+    a_q, b_q = (torch.randn(r, hidden, device="cuda") * 0.05).requires_grad_(True), \
+        (torch.randn(hidden, r, device="cuda") * 0.05).requires_grad_(True)
+    a_v, b_v = (torch.randn(r, hidden, device="cuda") * 0.05).requires_grad_(True), \
+        (torch.randn(256, r, device="cuda") * 0.05).requires_grad_(True)
+    ones = torch.ones(1, n, hidden, device="cuda")
+    (sq, kq), (sv, kv) = torch.native_dropout(ones, 0.05, True), torch.native_dropout(ones, 0.05, True)
+    gq = torch.randn(1, n, hidden, device="cuda").half() * 64
+    gv = torch.randn(1, n, 256, device="cuda").half() * 64
+    params = (h, a_q, b_q, a_v, b_v)
+
+    with torch.autocast("cuda", dtype=torch.float16):
+        x = RMSNormFn.apply(h, w, 1e-6)
+        ref = [F.linear(F.linear(x * s, a), b) * 2.0 for s, a, b in ((sq, a_q, b_q), (sv, a_v, b_v))]
+    torch.autograd.backward(ref, [gq, gv])
+    ref_grads = [p.grad.clone() for p in params]
+    for p in params:
+        p.grad = None
+    with torch.autocast("cuda", dtype=torch.float16):
+        x = RMSNormFn.apply(h, w, 1e-6)
+        ours = LoRAPairFromNorm.apply(x, h, w, 1e-6, sq, kq, sq.amax(), sv, kv, sv.amax(),
+                                      a_q, b_q, a_v, b_v, 2.0, 2.0, 0.05, 0.05)
+    torch.autograd.backward(list(ours), [gq, gv])
+    for a, b in zip(ours, ref):
+        assert torch.equal(a, b)
+    for p, g in zip(params, ref_grads):
+        torch.testing.assert_close(p.grad, g, rtol=1e-3, atol=1e-5)

@@ -91,9 +91,21 @@ def counting(ctx, *a):
     calls["n"] += 1
     return orig_fwd(ctx, *a)
 attn.FusedQKRope.forward = staticmethod(counting)
+pair_calls, sdpa_calls = {"n": 0}, {"n": 0}
+orig_pair, orig_sdpa = attn.LoRAPairFromNorm.forward, varlen.PackedSDPA.forward
+def counting_pair(ctx, *a):
+    pair_calls["n"] += 1
+    return orig_pair(ctx, *a)
+def counting_sdpa(ctx, *a):
+    sdpa_calls["n"] += 1
+    return orig_sdpa(ctx, *a)
+attn.LoRAPairFromNorm.forward = staticmethod(counting_pair)
+varlen.PackedSDPA.forward = staticmethod(counting_sdpa)
 l1, g1 = run()
 torch.is_autocast_enabled = real_autocast
 check("fused attention path taken", calls["n"] == cfg.num_hidden_layers, f"{calls['n']} calls")
+check("LoRA pair from the norm taken", pair_calls["n"] == cfg.num_hidden_layers, f"{pair_calls['n']} calls")
+check("packed SDPA with recompute taken", sdpa_calls["n"] == cfg.num_hidden_layers, f"{sdpa_calls['n']} calls")
 check("loss vs unfused", abs(l1 - l0) / l0 < 2e-3, f"{l1.item():.6f} vs {l0.item():.6f}")
 worst = max(((g1[k] - g0[k]).abs().max() / g0[k].abs().max().clamp(min=1e-12)).item() for k in g0)
 check("LoRA grads vs unfused (q/k/v rounded to fp16 as on GPU)", worst < 3e-2, f"worst rel {worst:.2e}")

@@ -10,7 +10,7 @@ import triton
 import triton.language as tl
 
 from . import warmup
-from ._state import on_gpu
+from ._state import STATE, on_gpu
 
 
 @triton.jit(do_not_specialize=["n_rows"])
@@ -49,24 +49,36 @@ def _warps(block):
     return 8 if block >= 2048 else 4
 
 
+def _forward(x2, weight, eps):
+    n_rows, n_cols = x2.shape
+    y = torch.empty((n_rows, n_cols), dtype=x2.dtype, device=x2.device)
+    rstd = torch.empty(n_rows, dtype=torch.float32, device=x2.device)
+    block = triton.next_power_of_2(n_cols)
+    skc_rmsnorm_fwd_kernel[(n_rows,)](x2, weight, y, rstd, n_rows, x2.stride(0), y.stride(0),
+                                      n_cols, eps, BLOCK=block, num_warps=_warps(block))
+    return y, rstd
+
+
+def _rows(x):
+    x2 = x.reshape(-1, x.shape[-1])
+    return x2 if x2.stride(-1) == 1 else x2.contiguous()
+
+
+def recompute(x, weight, eps):
+    """The norm's output for an input it ran on, bit-identical (same kernel, same launch)."""
+    y, _ = _forward(_rows(x), weight, eps)
+    return y.view(x.shape)
+
+
 class RMSNormFn(torch.autograd.Function):
     @staticmethod
     def forward(ctx, x, weight, eps):
         warmup.wait()
-        shape = x.shape
-        n_cols = shape[-1]
-        x2 = x.reshape(-1, n_cols)
-        if x2.stride(-1) != 1:
-            x2 = x2.contiguous()
-        n_rows = x2.shape[0]
-        y = torch.empty((n_rows, n_cols), dtype=x.dtype, device=x.device)
-        rstd = torch.empty(n_rows, dtype=torch.float32, device=x.device)
-        block = triton.next_power_of_2(n_cols)
-        skc_rmsnorm_fwd_kernel[(n_rows,)](x2, weight, y, rstd, n_rows, x2.stride(0), y.stride(0),
-                                          n_cols, eps, BLOCK=block, num_warps=_warps(block))
+        x2 = _rows(x)
+        y, rstd = _forward(x2, weight, eps)
         ctx.save_for_backward(x2, weight, rstd)
-        ctx.shape = shape
-        return y.view(shape)
+        ctx.shape = x.shape
+        return y.view(x.shape)
 
     @staticmethod
     def backward(ctx, dy):
@@ -100,7 +112,11 @@ def patch():
                 and weight.dim() == 1 and hidden_states.shape[-1] == weight.shape[0]
                 and hidden_states.shape[-1] <= 8192):
             return original(self, hidden_states)
-        return RMSNormFn.apply(hidden_states, weight, float(self.variance_epsilon))
+        eps = float(self.variance_epsilon)
+        out = RMSNormFn.apply(hidden_states, weight, eps)
+        if STATE.packing_active:
+            STATE.norm_link = (out, hidden_states, weight, eps)
+        return out
 
     forward._skc = True
     cls.forward = forward

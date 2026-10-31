@@ -11,6 +11,10 @@ class _State:
         # The packing of the current batch (varlen.Packing) while its forward runs.
         self.packing = None
         self.packing_active = False
+        # (output, input, weight, eps) of the last RMSNorm run on the packed path: what follows
+        # the norm (q/v LoRA, the recomputed MLP) rebuilds its input from the norm's input, which
+        # the norm keeps for its own backward anyway, instead of keeping a copy.
+        self.norm_link = None
 
 
 STATE = _State()
