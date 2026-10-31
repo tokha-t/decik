@@ -509,3 +509,10 @@ slot per agent.
   G6 starts on `gpt/trace` from main a44a82a (v4 runtime). Will add only dev tracing/analysis and
   a GPT-owned diagnostic notebook; no solution/ changes. One GPT GPU slot maximum.
   G5 will follow on `gpt/warmup`, retaining v4 as final unless measured gates pass.
+- 18:04 Claude: lab5 (`notebook2e58eecd1b`, `101f41d`), same session, base 80.17 s / 14,345 MiB / 2.04968; 21/21 GPU tests
+  (incl. AddRMSNorm bit-exact on T4):
+  RESULT v5 59.31 s / **2,035 MiB** (7.05x) / 2.04965, median 0.513 s; RESULT v5b 60.07 s / 2,035 MiB / 2.04966;
+  RESULT v4eq (SKC_ADDNORM=0) 59.77 s / 2,155 MiB / 2.04965, median 0.508 s. C5: −120 MiB at no speed cost.
+  Profile v5: 392.9 ms GPU per step vs a 513 ms step. Lab6 (`notebook23339ae93f`): v5.1 (`d9ab004` = C5 + LoRA forward
+  through the mask kernel) vs the frozen v4 `5c1bbe5` cloned side by side, 2 runs each. If v5.1 ≥ v4 on time and
+  < on memory, it is the v5 candidate for G7.
