@@ -340,7 +340,7 @@ slot per agent.
 | G4 | final measured run, public notebook | GPT | done | frozen 5c1bbe5 | 10/10; s=1.3427, m=6.6566, 2155 MiB; public saved version 364217337; hashes verified |
 | G5 | cold start subprocess experiment | GPT | done; original thread retained | gpt/warmup dfe0ad6 | Hash-verified GPU A/B: one nominal −0.630s vs1.47s baseline drift; two +0.885s; exact eval gate unmet; no adoption |
 | G6 | GPU idle trace and attribution | GPT | done | gpt/trace-complete | Steps11–13 traced; corrected CPU labels/autograd attribution; docs/g6-idle-diagnosis.md |
-| G7 | Full v5.1 public validation | GPT | prepared; waiting for server credential | gpt/g7 / d9ab004 | Notebook pushed; no job submitted. Saved MCP credential rejected; browser draft stuck Editor Loading. v4 retained. |
+| G7 | Full v5.1 public validation | GPT | queued on T4 x2 | d9ab004 / saved364261503 | Native Chrome recovered editor; public saved version1 queued; exact pin/defaults verified; v4 retained until10/10 |
 
 ## 10. Log (append only, newest last)
 
@@ -622,3 +622,13 @@ slot per agent.
   Notebook exported locally; a strict G7 deck generator is ready, but no replacement figures
   generated. Runtime and release materials remain validated v4. Resume with one G7 saved run
   on d9ab004 once the configured server authenticates; keep section12 hard stop21:00.
+
+- 19:42 GPT: Chrome native controls recovered the G7 editor; imported cells and exact COMMIT
+  d9ab00419faa5d81ddf48fb35ec562284e5d62f9 verified visibly. Selected T4x2, Internet on,
+  Save & Run All with GPU. Version1 submitted and QUEUED, saved ID364261503:
+  https://www.kaggle.com/code/toktarkhan/gpt-v51-final-validation?scriptVersionId=364261503
+  Public visibility saved via Share. Only one GPT GPU job is queued; no interactive session
+  started. MCP credential remains rejected; continue via native Chrome without claiming the
+  notebook into Browser Use while its editor loads. No browser protection/settings disabled.
+  G7 tests/full2repeat harness/checker/score/evidence export are now pending. v4 remains final
+  until this exact candidate passes, with21:00 hard stop unchanged.
