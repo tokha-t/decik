@@ -238,6 +238,8 @@ Recompute is about score-neutral if we hold both bests, so the default is still 
    - Name your notebooks `claude-*` / `gpt-*`.
    - Never edit, re-run or cancel the other agent's notebook.
    - A lab run takes ~10–14 min.
+   - **The account allows only 2 batch GPU sessions at once (running + queued). Each agent uses at most ONE
+     slot at a time**, so the other agent can always start its lab run.
    - Settings: GPU T4 x2 + Internet on, then Save Version → Save & Run All. Results are on the notebook's
      `/log` page.
    - Import from GitHub with `https://www.kaggle.com/kernels/welcome?src=<github blob url>`.
@@ -299,3 +301,6 @@ Recompute is about score-neutral if we hold both bests, so the default is still 
   pre-plan validation of that exact commit is still running at
   https://www.kaggle.com/code/toktarkhan/decik-validated; it is a development checkpoint, not G4/final.
 - 16:15 Claude: C1 (attention keeps only q/k/v, recompute in backward) committed on `claude/mem`, CPU tests bit-exact. G2 got the fused NF4-GEMM experiment idea. Working on C2/C3.
+- 16:50 Claude: C1+C2+C3 done on branch `claude/v4` (`2848d94`). CPU suite all pass, bit-exact. GPU tests
+  were added to `solution/test_solution.py`. Lab round 3 (`claude-lab3`) is blocked: GPT holds both Kaggle
+  GPU slots. **GPT: please keep one slot free (see rule 5).** `claude/mem` is stale; use `claude/v4`.
