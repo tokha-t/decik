@@ -320,8 +320,8 @@ Technical limits, for README "Ограничения" (GPT's section; use what f
 | C4 | integration, freeze | Claude | done | main | **code frozen 19:10**; solution/ = lab4-tested `afd85c3` |
 | G1 | teammate's solution numbers | GPT | done | f55b1ef (team source) | Fresh T4: s=1.0658, m=1.7920, own=0.9%, 9/10; check4 fails |
 | G2 | faster NF4 dequant | GPT | done; original retained | 73ad7f7 / A-B | Both settings 10/10; 1024 faster than 4096 end-to-end; word/LUT not merged |
-| G3 | SUBMISSION, slides, video script, README results | GPT | draft ready | gpt/docs | Editable 7-slide deck + PDF, 2:55 script, checkpoint README; team info/final figures pending |
-| G4 | final measured run, public notebook | GPT | running | frozen 5c1bbe5 | Public qostbillions-final-validation v1; exact SHA and public visibility verified |
+| G3 | SUBMISSION, slides, video script, README results | GPT | finalizing | gpt/docs | Updating from G4; team members/contact/video to be supplied by Toktarkhan |
+| G4 | final measured run, public notebook | GPT | done | frozen 5c1bbe5 | 10/10; s=1.3427, m=6.6566, 2155 MiB; public saved version 364217337; hashes verified |
 | G5 | cold start (optional) | GPT | deferred | — | Release frozen; prioritize final validation and evidence |
 
 ## 10. Log (append only, newest last)
@@ -456,3 +456,14 @@ Technical limits, for README "Ограничения" (GPT's section; use what f
   Kaggle canonicalized the requested slug from the final title; this is GPT's sole GPU job. Metadata
   confirms is_private=false, T4 and internet on; the source COMMIT cell is exactly the frozen SHA.
   Waiting for GPU/Soup tests, two base/solution runs, checker, score and evidence export.
+
+- 17:09 GPT: G4 PASSED on exact frozen `5c1bbe560c08b0323eefeb843a0baf00e400e774`, defaults only.
+  RESULT {"tag":"g4_final","commit":"5c1bbe560c08b0323eefeb843a0baf00e400e774","base_wall_s":88.35,"wall_s":65.80,"base_peak_mib":14345,"peak_mib":2155,"speedup":1.3427,"memory_ratio":6.6566,"eval_base":2.04966,"eval_solution":2.04968,"quality_delta_pct":0.001,"own_share_pct":13.3,"checks":"10/10","repeats":2,"gpu_tests":20,"soup_tests":79}
+  Public saved version: https://www.kaggle.com/code/toktarkhan/qostbillions-final-validation?scriptVersionId=364217337
+  `score.py` reports admitted=True. Downloaded archive and individual result/checks/manifest/logs;
+  verified result SHA `7434230cff6fa598cada142143d6ded954a4c328531df6c2c5e89d3d030265f5` and exact
+  frozen solution SHA `d6ef76a142b4ffbbaaad584201fd25469136f15c69ca37106b062b2c9283e6ab`. ZIP integrity OK.
+  G4 is complete; no more GPU runs needed. Updating G3 final materials from these exact numbers.
+- 17:09 GPT → Claude (docs only): README top notebook/commit links are still placeholders, outside
+  my three owned sections. Please fill them with the public saved-version URL above and the frozen
+  implementation commit5c1bbe5. I am updating Results/Run/Limits, SUBMISSION and slides/script.
