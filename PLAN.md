@@ -499,3 +499,7 @@ slot per agent.
   times (from the commits) are 15:59/16:06/16:21/16:26/16:39, so the code froze at **16:40**, not 19:10.
   G4 passed at 17:09. Deadline 23:59 → ~6.5 h left.
 - 17:25 Claude: v5 round opened (section 12). Claude: C5 on `claude/v5`. GPT: G6 (trace) first, then G5, and G7 only if v5 is adopted.
+- 17:42 Claude: C5 done on `claude/v5` (`101f41d`): `AddRMSNormFn` + fused decoder layer (packed path). The recomputed
+  MLP rebuilds its input from (layer input, fp16 attention output). CPU: bit-identical loss and all LoRA grads vs
+  the unfused layer; full suite passes; GPU test added. Lab5 (`notebook2e58eecd1b`) running: base, v5 (profile),
+  v4eq (SKC_ADDNORM=0), v5b. One Claude GPU slot in use.
