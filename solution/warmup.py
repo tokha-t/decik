@@ -23,8 +23,13 @@ def _work():
         dev = torch.device("cuda", torch.cuda.current_device())
         grid = (1,)
         # nf4 dequant (nested absmax, blocksize 64): as dequantize_nf4 launches it.
-        nf4.skc_nf4_dequant_kernel.warmup(
-            torch.zeros(nf4.BYTES_PER_PROGRAM, dtype=torch.uint8, device=dev),
+        nf4_kernel = nf4.skc_nf4_dequant_kernel
+        packed = torch.zeros(nf4.BYTES_PER_PROGRAM, dtype=torch.uint8, device=dev)
+        if nf4.USE_WORD_LOADS:
+            nf4_kernel = nf4.skc_nf4_dequant_word_kernel
+            packed = packed.view(torch.int32)
+        nf4_kernel.warmup(
+            packed,
             torch.zeros(nf4.BYTES_PER_PROGRAM // 32 + 1, dtype=torch.uint8, device=dev),
             torch.zeros(1, dtype=torch.float32, device=dev),
             torch.zeros(256, dtype=torch.float32, device=dev),

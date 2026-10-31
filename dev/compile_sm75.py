@@ -27,6 +27,12 @@ def build(fn, signature, constexprs, options):
 
 ok = True
 cases = [
+    (nf4.skc_nf4_dequant_word_kernel,
+     {"packed_ptr": "*i32", "absmax_ptr": "*u8", "absmax2_ptr": "*fp32", "code2_ptr": "*fp32",
+      "offset_ptr": "*fp32", "code_ptr": "*fp32", "out_ptr": "*fp16", "n_bytes": "i32",
+      "NESTED": "constexpr", "QBLOCK": "constexpr", "QBLOCK2": "constexpr", "BLOCK": "constexpr"},
+     {"NESTED": True, "QBLOCK": 64, "QBLOCK2": 256, "BLOCK": nf4.BYTES_PER_PROGRAM},
+     {"num_warps": nf4.NUM_WARPS, "enable_fp_fusion": False}),
     (nf4.skc_nf4_dequant_kernel,
      {"packed_ptr": "*u8", "absmax_ptr": "*u8", "absmax2_ptr": "*fp32", "code2_ptr": "*fp32",
       "offset_ptr": "*fp32", "code_ptr": "*fp32", "out_ptr": "*fp16", "n_bytes": "i32",
