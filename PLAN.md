@@ -169,7 +169,11 @@ Recompute is about score-neutral if we hold both bests, so the default is still 
   - decoding absmax once per 64-weight block instead of per element;
   - 32/64-bit stores;
   - other bytes-per-program / warp combinations;
-  - one launch for gate + up.
+  - one launch for gate + up;
+  - experiment (from Toktarkhan's research notes): fuse the dequant into the matmul, a Triton NF4 GEMM that
+    never writes the fp16 weight (~6.5 GB of HBM traffic per step today). It won't be bit-identical (different
+    accumulation order), and on the T4 a Triton fp16 matmul may lose to cuBLAS. Adopt only if the end-to-end
+    lab run is faster and eval loss stays within ±0.0001.
 - How to measure: a Kaggle micro-benchmark over the layer shapes (1536×1536, 256×1536, 8960×1536,
   1536×8960), against the current kernel and bnb, then one lab run.
 - Accepted if: the GPU test `solution/test_solution.py` passes (bit-identical), the kernel is faster, and
@@ -294,3 +298,4 @@ Recompute is about score-neutral if we hold both bests, so the default is still 
   default selection now belong to Claude (C3/C4): use the measurements above to decide at M4. A
   pre-plan validation of that exact commit is still running at
   https://www.kaggle.com/code/toktarkhan/decik-validated; it is a development checkpoint, not G4/final.
+- 16:15 Claude: C1 (attention keeps only q/k/v, recompute in backward) committed on `claude/mem`, CPU tests bit-exact. G2 got the fused NF4-GEMM experiment idea. Working on C2/C3.
