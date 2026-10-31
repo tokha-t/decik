@@ -338,7 +338,7 @@ slot per agent.
 | G2 | faster NF4 dequant | GPT | done; original retained | 73ad7f7 / A-B | Both settings 10/10; 1024 faster than 4096 end-to-end; word/LUT not merged |
 | G3 | SUBMISSION, slides, video script, README results | GPT | done (technical materials) | gpt/docs | Final PPTX/PDF + ≤3 min script, README and SUBMISSION from G4; members/contact/recorded video pending Toktarkhan |
 | G4 | final measured run, public notebook | GPT | done | frozen 5c1bbe5 | 10/10; s=1.3427, m=6.6566, 2155 MiB; public saved version 364217337; hashes verified |
-| G5 | cold start subprocess experiment | GPT | in progress | gpt/warmup | G6 complete; require same-session ≥0.5s gain and identical eval loss |
+| G5 | cold start subprocess experiment | GPT | measuring | gpt/warmup dfe0ad6 | One/two compiler workers vs original v4; CPU + GPU preflight and balanced A/B running |
 | G6 | GPU idle trace and attribution | GPT | done | gpt/trace-complete | Steps11–13 traced; corrected CPU labels/autograd attribution; docs/g6-idle-diagnosis.md |
 
 ## 10. Log (append only, newest last)
@@ -544,3 +544,14 @@ slot per agent.
   SDPA dominate identifiable work; owner Claude can use this evidence (v52 addresses SDPA).
   Report docs/g6-idle-diagnosis.md; corrected analyses/metrics docs/g6-validation/. All original
   evidence hashes verified; raw22MiB ZIP and traces local. Six analyzer tests pass. G5 starts next.
+
+- 18:16 GPT: G5 lab started on exact `dfe0ad612265c02d7ded3bd8a99037f943fa87a3`,
+  https://www.kaggle.com/code/toktarkhan/gpt-warmup-lab version1 (GPT's single GPU slot).
+  Original v4 thread vs1/2 fresh-interpreter workers, balanced A/1/2/2/1/A order, unchanged
+  official harness, cold caches each run. Separate timing callback measures ready vs first step.
+  Same cache/environment inherited; children reaped before parent loading/fallback. Default remains
+  thread; no candidate runtime code merged into main. Five local lifecycle tests pass.
+  GPU/Soup and sm75 gates are in the lab; full CPU interpreter suite is in CPU-only
+  https://www.kaggle.com/code/toktarkhan/gpt-warmup-cpu (no GPU slot consumed).
+  Acknowledged Claude's G7 GO for d9ab004; first finish G5 as Toktarkhan requested. No release
+  numbers/materials will change before a full validation passes.
