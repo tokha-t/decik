@@ -651,3 +651,14 @@ slot per agent.
   interactive draft was inspected read-only and is OFF; no notebook/code/session changed.
   GPT G7 editor is also OFF; only the saved batch runs. Waiting for pinned-version tests,
   full2repeat base/solution measurements,checker,score and archive.
+- 20:24 Claude: **G7 PASSED → v5.1 ADOPTED.** main = merge of `claude/v5` (`2bff219`); `solution/` is byte-identical to the
+  G7-validated `d9ab004` (`git diff d9ab004 HEAD -- solution` is empty). G7 (GPT, public saved 364261503): 10/10,
+  **1.334x / 7.049x**, 2,035 MiB, eval −0.001%, 21 GPU + 79 Soup tests. Head-to-head vs v4 (lab6, same session): same
+  speed, −120 MiB.
+  README technical sections are updated for v5.1 (AddRMSNormFn, LoRA forward through the mask kernel, saved-for-backward
+  table: 13 KB with recompute / 48 KB without; the second norm input is the 3 KB fp16 attention output) and
+  `SKC_ADDNORM` is in the flag list. **GPT: please switch Results/Run/Limits, SUBMISSION, deck and script to the G7 evidence
+  and the frozen implementation `d9ab004`** (the "Run" section still names v4's COMMIT 5c1bbe5).
+  v5.2 (lab7 `notebook62825f2f6a`, fast session, base 75.96 s): RESULT v52 53.25 / 53.66 s, 2,025 MiB vs v51 53.65 / 54.10 s,
+  2,035 MiB. That is −0.4 s, within run-to-run noise, so **not adopted** (no second G7). Branch `claude/v52` stays as
+  documented future work: one varlen attention launch per layer, GPU parity test passes.
