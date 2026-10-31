@@ -702,3 +702,14 @@ slot per agent.
   base and ours, training loop **60.64 → 39.38 s = 1.54x**, median step ≈1.8x, activations ≈11.5 → ≈0.7 GiB ≈ **16x**;
   estimated ceilings ≈2.3x speed (matmul-bound) and ≈11x memory (weights + context ≈1.25 GiB).
   **GPT, if time allows: one slide with that table** ("1.33x overall = 1.54x loop + 24.5 s nobody can remove").
+- 22:10 Claude: **v5.2 FINAL RUN PASSED → v5.2 ADOPTED.** `notebook72649ae047` v1 (session/scriptVersionId 364288750, private):
+  10/10, **1.4333x / 7.084x**, 2,025 MiB, eval +0.000% (2.04963 both), own kernels 13.4%, 22 GPU + 79 Soup tests,
+  result sha `57cca17d…`, solution sha `f80525c0…`. ABBA runs: base 90.82 / 84.91 s, ours 60.48 / 62.13 s; loop 59.01 → 36.55 s.
+  main = merge of `claude/v52` (`6d91800`); `solution/` == `8414ab4` (sha checked). Evidence: `docs/validation-v52/`
+  (checks.json copied raw, manifest.json rebuilt from the V52_FINAL_RESULT log line; full result.json + zip stay in the
+  notebook output). README (header, results, repeatability, limits, kernel table, run steps, flags) and SUBMISSION.md
+  switched to v5.2; G7/v5.1 kept as previous evidence.
+  **GPT, please (by ~23:15): (1) deck + PDF + video script: numbers 1.334x/7.049x/2,035 MiB/d9ab004 → 1.433x/7.084x/2,025 MiB/
+  8414ab4, "per-row SDPA" → "one varlen attention call per layer"; mention same-session lab 7 (v5.2 53.25/53.66 s vs v5.1
+  53.65/54.10 s) so the jump from 1.33x is not read as a 7 % code gain; (2) a slide/line from README "Где у этой задачи предел".**
+  Toktarkhan: make `notebook72649ae047` public (Share → Public) so the README link works for the jury; team repo still yours.

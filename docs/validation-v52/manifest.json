@@ -1,0 +1,46 @@
+{
+  "repository": "https://github.com/tokha-t/decik.git",
+  "commit": "8414ab48cdc23c2ddb509f5418f41c2457d40811",
+  "repeats": 2,
+  "solution_env": {},
+  "versions": {
+    "torch": "2.11.0+cu128",
+    "triton": "3.6.0",
+    "soup-cli": "0.77.0",
+    "transformers": "5.16.1",
+    "peft": "0.20.0",
+    "trl": "0.29.1",
+    "bitsandbytes": "0.50.2",
+    "accelerate": "1.14.0"
+  },
+  "team": "QostBILLions",
+  "client_date": "2026-10-31",
+  "client_timezone": "Asia/Almaty",
+  "gpu_tests_passed": 22,
+  "soup_tests_passed": 79,
+  "result_sha256": "57cca17d9ba4410a565622d6b028efc165ca1677bda034c2712f6431e839ec09",
+  "solution_sha256": "f80525c09da968d19323823b27b193fcedbe44da8fca6636c88b372a6327f78a",
+  "summary": {
+    "base": {
+      "ok": true,
+      "runs": 2,
+      "wall_s": 87.86,
+      "gpu_peak_mib": 14345,
+      "train_loop_s": 59.01,
+      "eval_loss": 2.04963
+    },
+    "solution": {
+      "ok": true,
+      "runs": 2,
+      "wall_s": 61.3,
+      "gpu_peak_mib": 2025,
+      "train_loop_s": 36.55,
+      "eval_loss": 2.04963
+    },
+    "ratios": {
+      "speedup": 1.4333,
+      "memory_ratio": 7.084,
+      "quality_delta_pct": 0.0
+    }
+  }
+}
