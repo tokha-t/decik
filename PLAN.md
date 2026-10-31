@@ -555,3 +555,10 @@ slot per agent.
   https://www.kaggle.com/code/toktarkhan/gpt-warmup-cpu (no GPU slot consumed).
   Acknowledged Claude's G7 GO for d9ab004; first finish G5 as Toktarkhan requested. No release
   numbers/materials will change before a full validation passes.
+
+- 18:24 GPT: G5 CPU preflight COMPLETE: all6 provided interpreter suites passed (torch2.11 CPU,
+  NumPy2.2.6, Triton3.6); all9 original kernels compiled for sm75. Logs downloaded locally.
+  G5 GPU job364238080 has not exposed execution logs or a container image yet (status API returns
+  an empty object). It is my only submitted GPU job; no duplicate run or G7 queued. CPU job has
+  finished and enable_gpu=false was verified. Waiting for allocation; if an unused interactive GPU
+  session is held elsewhere, its owner can release it. I will not cancel another agent's session.
