@@ -261,6 +261,53 @@ Recompute is about score-neutral if we hold both bests, so the default is still 
 - Soup's rewind hook reads `model._soup_chunked_step.token_loss` when outputs have no logits (`head.py`
   sets it).
 
+## 8b. Release notes for G3/G4 (Claude, for README results / deck / video)
+
+What the release candidate (`claude/v4` → main) contains beyond the checkpoint `233282f`:
+
+1. **Attention keeps only q, k, v for backward** (`varlen.PackedSDPA`). Each row's SDPA forward is re-run in
+   backward (the attention forward is ~1% of the step). Rows are written straight into one output buffer, and
+   gradients straight into their rows (no cat, no zero-filled per-row gradients). −8 KB per token per layer.
+   Bit-exact.
+2. **q/v LoRA inputs are rebuilt from the norm's input** (`attn.LoRAPairFromNorm`), with the same norm kernel,
+   bit-identical. Dropout keep-masks are kept as bits.
+   - Three new kernels: `skc_keep_pack_kernel`, `skc_lora_inputs_kernel`, `skc_lora_input_grad_kernel`.
+   - −8.6 KB per token per layer.
+   - In backward, 13 element-wise ops become 2 launches.
+3. **MLP recompute is on by default.** Its input is rebuilt from the norm's input, gate/up are dequantized once
+   in backward, and SwiGLU backward runs in place. 0 KB kept per token per layer, vs 35 KB with
+   `SKC_RECOMPUTE=0`.
+4. **Batches without padding are also packed** (robustness on hidden data).
+
+Our kernels (9): `skc_nf4_dequant_kernel`, `skc_rmsnorm_fwd_kernel`, `skc_rmsnorm_bwd_kernel`,
+`skc_head_stats_kernel`, `skc_rope_fwd_kernel`, `skc_rope_bwd_kernel`, `skc_keep_pack_kernel`,
+`skc_lora_inputs_kernel`, `skc_lora_input_grad_kernel`. The example SwiGLU is used but not counted. Likeness to
+the example is ≤ 0.60 for all of them (`check_rules.example_likeness`).
+
+Saved for backward, per token per layer: base 138 KB on padded slots vs ours 16 KB with recompute (51 KB
+without). The breakdown table is in README "Как устроены кернелы".
+
+Measured in lab3, commit `25f9357`, same session, base 79.16 s:
+
+| Config | Time | Peak | Speed / memory |
+|---|---|---|---|
+| recompute off | 53.59 s | 3,705 MiB | 1.48× / 3.87× |
+| recompute on | 59.56 s | 2,285 MiB | 1.33× / 6.28× |
+
+Final numbers come from G4 only.
+
+Technical limits, for README "Ограничения" (GPT's section; use what fits):
+- MLP recompute costs about 6 s per run: ≈ 40–95 ms per step of extra GEMMs on a power-limited T4, in
+  exchange for −1.4 GB peak. `SKC_RECOMPUTE=0` gives 53.6 s / 3.7 GB instead.
+- Attention runs per row: 4 SDPA calls per layer and the forward runs twice. A varlen kernel would remove the
+  loop, but attention is ~6% of GPU time.
+- The NF4 dequant writes a full fp16 weight before cuBLAS (~12% of GPU time). A fused NF4 GEMM in Triton is not
+  viable here: Triton 3.6 has no tensor-core `tl.dot` on sm_75 (G2 finding).
+- The GPU is busy ~300 ms of a ~420 ms step. The rest is CPU launch overhead and sync points (~3,500 kernels
+  per step). Startup (imports, model load) is a fixed ~22 s of the ~55 s wall.
+- What's left for backward is mostly the fp32 residual stream at the two norm inputs (12 of 16 KB per token per
+  layer). Changing that would change the numerics.
+
 ## 9. Status board
 
 | ID | Task | Owner | State | Branch / sha | Note |
@@ -269,8 +316,8 @@ Recompute is about score-neutral if we hold both bests, so the default is still 
 | M1 | fused attention input | Claude | done | 58aa16a | 1.50× / 3.33× (lab) |
 | C1 | attention core recompute | Claude | done | claude/v4 | PackedSDPA: saves q/k/v only; bit-exact |
 | C2 | LoRA input recompute | Claude | done | claude/v4 | from the norm's input; masks bit-packed (3 new kernels) |
-| C3 | MLP recompute variants, default | Claude | in progress | claude/v4 | x16 from norm, dequant reuse; default after lab4 |
-| C4 | integration, freeze 19:30 | Claude | todo | main | |
+| C3 | MLP recompute variants, default | Claude | done | main | recompute ON by default; x16 from norm, dequant reuse |
+| C4 | integration, freeze | Claude | done | main | **code frozen 19:10**; solution/ = lab4-tested `afd85c3` |
 | G1 | teammate's solution numbers | GPT | done | f55b1ef (team source) | Fresh T4: s=1.0658, m=1.7920, own=0.9%, 9/10; check4 fails |
 | G2 | faster NF4 dequant | GPT | in progress | gpt/nf4 / 659b935 | Word-load candidate; CPU parity diagnostic running without GPU; no code merged |
 | G3 | SUBMISSION, slides, video script, README results | GPT | draft ready | gpt/docs | Editable 7-slide deck + PDF, 2:55 script, checkpoint README; team info/final figures pending |
@@ -352,3 +399,13 @@ Recompute is about score-neutral if we hold both bests, so the default is still 
   favours recompute. Lab4 (`notebook68197af25f`) on the merged `claude/v4` head `afd85c3`: base, v41
   (default, profile), v41norc, v41b. If it passes, main fast-forwards to `claude/v4` and that is the
   release candidate for G4.
+- 19:10 Claude: lab4 (`notebook68197af25f`, `claude/v4` @ `afd85c3`), same session, base 80.65 s / 14,345 MiB /
+  2.04966; 20/20 GPU tests on T4:
+  RESULT v41 (default: recompute ON, packed masks) 62.15 s / **2,155 MiB** (1.30x / **6.66x**) / 2.04966 (= base),
+  loop 36.76 s, median step 0.493 s;
+  RESULT v41norc (SKC_RECOMPUTE=0) 58.39 s / 3,555 MiB (1.38x / 4.04x) / 2.0497, loop 33.01 s, median 0.426 s.
+  This session's startup was ~3 s slower than lab3's (apply 9.2 s vs 8.0 s). Only same-session ratios count.
+  **CODE FREEZE: main now = `claude/v4`. solution/ is byte-identical to the lab4-tested commit.** GPT: G4 can
+  start on the main HEAD sha (template notebook, `--repeats 2`, checks, score, Soup tests with
+  SOUP_APPLY_SOLUTION=1), then README results / SUBMISSION / deck / script from section 8b plus the G4
+  numbers. No more code changes from Claude unless G4 finds a failure.
