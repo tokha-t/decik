@@ -265,7 +265,7 @@ def patch(recompute_attention=True, fuse_residual=True, varlen_attention=True):
     model_cls.forward = forward
 
     sdpa = ALL_ATTENTION_FUNCTIONS["sdpa"]
-    use_varlen = _varlen_available()
+    varlen_ok = [_varlen_available()]
 
     def sdpa_packed(module, query, key, value, attention_mask, dropout=0.0, scaling=None,
                     is_causal=None, **kwargs):
@@ -281,9 +281,12 @@ def patch(recompute_attention=True, fuse_residual=True, varlen_attention=True):
                 and key.dtype == torch.float16 and value.dtype == torch.float16
                 and query.stride(-1) == 1 and key.stride(-1) == 1 and value.stride(-1) == 1):
             # fp16 q/k/v come from attn.py; SDPA would run on them as they are under autocast
-            if varlen_attention and query.is_cuda and use_varlen:
-                return VarlenSDPA.apply(query, key, value, packing.cu_seqlens(query.device),
-                                        packing.max_len, groups, scaling), None
+            if varlen_attention and query.is_cuda and varlen_ok[0]:
+                try:
+                    return VarlenSDPA.apply(query, key, value, packing.cu_seqlens(query.device),
+                                            packing.max_len, groups, scaling), None
+                except RuntimeError:  # this PyTorch/GPU cannot run it: per-row from now on
+                    varlen_ok[0] = False
             return PackedSDPA.apply(query, key, value, packing.spans, groups, scaling), None
         outputs = []
         for start, length in packing.spans:
