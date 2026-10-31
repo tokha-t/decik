@@ -18,7 +18,7 @@ def _work():
     try:
         import torch
 
-        from . import head, nf4, rmsnorm
+        from . import attn, head, nf4, rmsnorm
 
         dev = torch.device("cuda", torch.cuda.current_device())
         grid = (1,)
@@ -44,6 +44,16 @@ def _work():
                                               BLOCK=block, num_warps=8, grid=grid)
         rmsnorm.skc_rmsnorm_bwd_kernel.warmup(torch.zeros_like(x), x, w, r, torch.empty_like(x), 1,
                                               n, n, n, n, BLOCK=block, num_warps=8, grid=grid)
+        # RoPE (12 query heads, 2 kv heads, head_dim 128), forward and backward.
+        q = torch.zeros((1, 12 * 128), dtype=torch.float16, device=dev)
+        kk = torch.zeros((1, 2 * 128), dtype=torch.float16, device=dev)
+        cs = torch.zeros((1, 128), dtype=torch.float32, device=dev)
+        attn.skc_rope_fwd_kernel.warmup(q, q, kk, cs, cs, torch.empty_like(q), torch.empty_like(kk), 1,
+                                        HQ=12, HK=2, D=128, BQ=2048, BK=256, num_warps=4,
+                                        enable_fp_fusion=False, grid=grid)
+        attn.skc_rope_bwd_kernel.warmup(q, kk, cs, cs, torch.empty_like(q), torch.empty_like(kk), 1,
+                                        HQ=12, HK=2, D=128, BQ=2048, BK=256, num_warps=4,
+                                        enable_fp_fusion=False, grid=grid)
         # The starter kit's SwiGLU (used by mlp.py with fp16 gate/up; it does not count as ours).
         from . import swiglu
 

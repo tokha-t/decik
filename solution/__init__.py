@@ -12,6 +12,7 @@ What runs (see README.md for the numbers):
 - embedding.py the tied embedding / lm_head kept in fp16 (same values; no fp32 copy)
 - head.py     lm_head + loss + TRL metrics + rewind losses in chunks, with our Triton kernel
 - varlen.py   padding-free decoder (attention per row, LoRA dropout with the base's draws)
+- attn.py     LoRA add + RoPE + fp16 cast of q and k in one Triton launch (padding-free path)
 - warmup.py   Triton compilation in a background thread while the model loads
 
 SKC_<NAME>=0 in the environment turns one part off, for A/B runs while developing; the measured
@@ -29,7 +30,7 @@ def _enabled(name):
 def apply():
     import torch
 
-    from . import embedding, head, mlp, nf4, rmsnorm, varlen, warmup
+    from . import attn, embedding, head, mlp, nf4, rmsnorm, varlen, warmup
 
     if _enabled("WARMUP") and torch.cuda.is_available():
         warmup.start()
@@ -45,3 +46,5 @@ def apply():
         head.patch()
         if _enabled("VARLEN"):
             varlen.patch()
+            if _enabled("ATTN"):
+                attn.patch()
