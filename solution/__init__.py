@@ -15,7 +15,8 @@ What runs (see README.md for the numbers):
 - warmup.py   Triton compilation in a background thread while the model loads
 
 SKC_<NAME>=0 in the environment turns one part off, for A/B runs while developing; the measured
-runs use the defaults (everything on).
+runs use the defaults (everything on). SKC_RECOMPUTE=1 additionally recomputes the MLP's gate
+and up in backward (less memory, a little slower).
 """
 
 import os
@@ -37,7 +38,7 @@ def apply():
     if _enabled("RMSNORM"):
         rmsnorm.patch()
     if _enabled("MLP"):
-        mlp.patch()
+        mlp.patch(recompute=os.environ.get("SKC_RECOMPUTE", "0") == "1")
     if _enabled("EMBED"):
         embedding.patch()
     if _enabled("HEAD"):
