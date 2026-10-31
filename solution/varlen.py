@@ -42,6 +42,17 @@ class Packing:
         return (scaled.reshape(-1, width).index_select(0, self.index),
                 keep.reshape(-1, width).index_select(0, self.index))
 
+    def dropout_keep(self, p, width, dtype, device):
+        """The keep-mask of the same draw as dropout_draw (same op, same shape, so the same random
+        numbers), at the real tokens, and the kept value as a 0-dim tensor."""
+        key = (width, dtype, device)
+        ones = self._ones.get(key)
+        if ones is None:
+            ones = torch.ones((self.batch, self.seq, width), dtype=dtype, device=device)
+            self._ones[key] = ones
+        scaled, keep = torch.native_dropout(ones, p, True)
+        return keep.reshape(-1, width).index_select(0, self.index), self.dropout_scale(p, scaled)
+
     def dropout_scale(self, p, scaled):
         """The kept value of a draw (1 / (1 - p) as the dropout kernel rounds it), as a 0-dim
         tensor on the device: keep * scale rebuilds the draw's values exactly."""
@@ -154,7 +165,7 @@ def plan(model, input_ids, attention_mask, position_ids, past_key_values, inputs
     return Packing(index, positions, spans, batch, seq)
 
 
-def patch(recompute_attention=True):
+def patch(recompute_attention=True, fuse_residual=True):
     import torch.nn.functional as F
     from transformers.modeling_outputs import BaseModelOutputWithPast
     from transformers.modeling_utils import ALL_ATTENTION_FUNCTIONS
@@ -222,6 +233,49 @@ def patch(recompute_attention=True):
         return torch.cat(outputs, dim=2).transpose(1, 2).contiguous(), None
 
     ALL_ATTENTION_FUNCTIONS["sdpa"] = sdpa_packed
+
+    from . import rmsnorm
+
+    layer_cls = modeling_qwen2.Qwen2DecoderLayer
+    layer_forward = layer_cls.forward
+
+    def decoder_layer(self, hidden_states, attention_mask=None, position_ids=None,
+                      past_key_values=None, use_cache=False, position_embeddings=None, **kwargs):
+        packing = STATE.packing
+        post_norm = getattr(self, "post_attention_layernorm", None)
+        if not (fuse_residual and STATE.packing_active and packing is not None
+                and attention_mask is None and past_key_values is None and not use_cache
+                and isinstance(hidden_states, torch.Tensor) and hidden_states.dim() == 3
+                and hidden_states.shape[0] == 1 and hidden_states.shape[1] == packing.n_tokens
+                and rmsnorm.fusable(post_norm, hidden_states)):
+            return layer_forward(self, hidden_states, attention_mask=attention_mask,
+                                 position_ids=position_ids, past_key_values=past_key_values,
+                                 use_cache=use_cache, position_embeddings=position_embeddings,
+                                 **kwargs)
+        # Qwen2DecoderLayer.forward with the residual add and the post-attention norm fused:
+        # the norm's input is rebuilt in backward from the layer input and the fp16 attention
+        # output instead of being kept (3 KB per token per layer instead of 6).
+        residual = hidden_states
+        hidden_states = self.input_layernorm(hidden_states)
+        attn_out, _ = self.self_attn(hidden_states=hidden_states, attention_mask=attention_mask,
+                                     position_ids=position_ids, past_key_values=past_key_values,
+                                     use_cache=use_cache, position_embeddings=position_embeddings,
+                                     **kwargs)
+        if (isinstance(attn_out, torch.Tensor) and attn_out.dtype == torch.float16
+                and attn_out.shape == residual.shape):
+            eps = float(post_norm.variance_epsilon)
+            hidden_states, normed = rmsnorm.AddRMSNormFn.apply(residual, attn_out, post_norm.weight,
+                                                               eps)
+            STATE.norm_link = (normed, (residual, attn_out), post_norm.weight, eps)
+        else:
+            hidden_states = residual + attn_out
+            normed = post_norm(hidden_states)
+        residual = hidden_states
+        hidden_states = self.mlp(normed)
+        return residual + hidden_states
+
+    decoder_layer._skc = True
+    layer_cls.forward = decoder_layer
 
     dropout_forward = torch.nn.Dropout.forward
 

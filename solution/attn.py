@@ -180,6 +180,18 @@ def skc_lora_input_grad_kernel(gq_ptr, gv_ptr, bits_q_ptr, bits_v_ptr, out_ptr, 
     tl.store(out_ptr + row * WIDTH + cols, tq + tv, mask=valid)
 
 
+def _lora_inputs(x, bits_q, bits_v, scale_q, scale_v):
+    """fp16(x * dropout values) of the q and v branches, [T, W] each (skc_lora_inputs_kernel)."""
+    width = x.shape[-1]
+    n_rows = x.numel() // width
+    x16_q = torch.empty((n_rows, width), dtype=torch.float16, device=x.device)
+    x16_v = torch.empty_like(x16_q)
+    skc_lora_inputs_kernel[(n_rows,)](x, bits_q, bits_v, scale_q, scale_v, x16_q, x16_v, n_rows,
+                                      WIDTH=width, BLOCK=triton.next_power_of_2(width), num_warps=4,
+                                      enable_fp_fusion=False)
+    return x16_q, x16_v
+
+
 def pack_keep(keep_q, keep_v):
     """Two bool keep-masks [T, W] (W divisible by 8) -> bit-packed uint8 [T, W / 8] each."""
     n_rows, width = keep_q.shape
@@ -204,10 +216,14 @@ class LoRAPairFromNorm(torch.autograd.Function):
     @staticmethod
     def forward(ctx, x, h, norm_weight, eps, scaled_q, mask_q, scale_q, scaled_v, mask_v, scale_v,
                 a_q, b_q, a_v, b_v, scaling_q, scaling_v, p_q, p_v, packed):
+        if packed:  # fp16(x * dropout) of both branches in one launch, the kernel backward uses too
+            inputs = tuple(t.view(x.shape) for t in _lora_inputs(x, mask_q, mask_v, scale_q, scale_v))
+        else:
+            inputs = tuple((x * scaled if scaled is not None else x).to(torch.float16)
+                           for scaled in (scaled_q, scaled_v))
         outs, us = [], []
-        for scaled, a, b, scaling in ((scaled_q, a_q, b_q, scaling_q), (scaled_v, a_v, b_v, scaling_v)):
-            xd = x * scaled if scaled is not None else x
-            u = F.linear(xd.to(torch.float16), a.to(torch.float16))
+        for x16, a, b, scaling in zip(inputs, (a_q, a_v), (b_q, b_v), (scaling_q, scaling_v)):
+            u = F.linear(x16, a.to(torch.float16))
             outs.append(F.linear(u, b.to(torch.float16)) * scaling)
             us.append(u)
         ctx.save_for_backward(h, norm_weight, mask_q, scale_q, mask_v, scale_v, us[0], us[1],
@@ -223,13 +239,7 @@ class LoRAPairFromNorm(torch.autograd.Function):
         width = x.shape[-1]
         n_rows = x.numel() // width
         if ctx.packed:
-            x16_q = torch.empty((n_rows, width), dtype=torch.float16, device=x.device)
-            x16_v = torch.empty_like(x16_q)
-            block = triton.next_power_of_2(width)
-            skc_lora_inputs_kernel[(n_rows,)](x, mask_q, mask_v, scale_q, scale_v, x16_q, x16_v,
-                                              n_rows, WIDTH=width, BLOCK=block, num_warps=4,
-                                              enable_fp_fusion=False)
-            inputs = (x16_q, x16_v)
+            inputs = _lora_inputs(x, mask_q, mask_v, scale_q, scale_v)
         else:
             inputs = tuple((x * (m * s) if m is not None else x).to(torch.float16).reshape(-1, width)
                            for m, s in ((mask_q, scale_q), (mask_v, scale_v)))
@@ -290,15 +300,19 @@ def _lora_parts(layer, name):
 def _lora_pair(x, link, parts_q, parts_v, packing):
     """q and v LoRA deltas through LoRAPairFromNorm; dropout draws in the base's order (q, v)."""
     _, h, norm_weight, eps = link
+    width = x.shape[-1]
+    packed = parts_q[3] > 0.0 and parts_v[3] > 0.0 and width % 8 == 0
     draws = []
     for _, _, _, p in (parts_q, parts_v):
         if p == 0.0:
             draws.append((None, None, None))
-            continue
-        scaled, keep = packing.dropout_draw(p, x.shape[-1], x.dtype, x.device)
-        draws.append((scaled.view(x.shape), keep, packing.dropout_scale(p, scaled)))
+        elif packed:  # the same draw; only its keep-mask and kept value are needed
+            keep, scale = packing.dropout_keep(p, width, x.dtype, x.device)
+            draws.append((None, keep, scale))
+        else:
+            scaled, keep = packing.dropout_draw(p, width, x.dtype, x.device)
+            draws.append((scaled.view(x.shape), keep, packing.dropout_scale(p, scaled)))
     (sq, kq, cq), (sv, kv, cv) = draws
-    packed = kq is not None and kv is not None and x.shape[-1] % 8 == 0
     if packed:
         mq, mv = pack_keep(kq, kv)
     else:
@@ -376,7 +390,8 @@ def patch(recompute_lora=True):
         x = hidden_states
         link = STATE.norm_link
         parts_q = parts_v = None
-        if recompute_lora and link is not None and link[0] is x and link[1].shape == x.shape:
+        if (recompute_lora and link is not None and link[0] is x
+                and isinstance(link[1], torch.Tensor) and link[1].shape == x.shape):
             parts_q, parts_v = _lora_parts(self.q_proj, q_name), _lora_parts(self.v_proj, v_name)
         # Same call order as the base (q, k, v): the LoRA dropout draws stay in step.
         q_base = self.q_proj.base_layer(x.to(torch.float16))
