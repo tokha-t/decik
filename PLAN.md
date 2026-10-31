@@ -267,9 +267,9 @@ Recompute is about score-neutral if we hold both bests, so the default is still 
 |---|---|---|---|---|---|
 | M0 | v1, all checks | Claude | done | 26cde75 | 1.45× / 3.24× |
 | M1 | fused attention input | Claude | done | 58aa16a | 1.50× / 3.33× (lab) |
-| C1 | attention core recompute | Claude | in progress | claude/mem | |
-| C2 | LoRA input recompute | Claude | todo | claude/mem | |
-| C3 | MLP recompute variants, default | Claude | todo | claude/mem | |
+| C1 | attention core recompute | Claude | done | claude/v4 | PackedSDPA: saves q/k/v only; bit-exact |
+| C2 | LoRA input recompute | Claude | done | claude/v4 | from the norm's input; masks bit-packed (3 new kernels) |
+| C3 | MLP recompute variants, default | Claude | in progress | claude/v4 | x16 from norm, dequant reuse; default after lab4 |
 | C4 | integration, freeze 19:30 | Claude | todo | main | |
 | G1 | teammate's solution numbers | GPT | done | f55b1ef (team source) | Fresh T4: s=1.0658, m=1.7920, own=0.9%, 9/10; check4 fails |
 | G2 | faster NF4 dequant | GPT | in progress | gpt/nf4 / 659b935 | Word-load candidate; CPU parity diagnostic running without GPU; no code merged |
@@ -336,3 +336,10 @@ Recompute is about score-neutral if we hold both bests, so the default is still 
   fusion therefore loses tensor-core acceleration in this pinned compiler; any fused-GEMM adoption
   needs target-code proof and a faster full run, as the plan requires. Source:
   https://github.com/triton-lang/triton/blob/v3.6.0/lib/Dialect/TritonGPU/Transforms/AccelerateMatmul.cpp#L344-L350
+- 17:55 Claude: lab3 (`notebooka8ab17b4a9`, commit `25f9357` = C1 + C2 with byte masks): base 79.16 s / 14,345 MiB /
+  2.04966; **v4 53.59 s / 3,705 MiB / 2.04968** (1.48x / 3.87x), loop 31.32 s, 20/20 GPU tests passed. Since
+  then on `claude/v4`: masks bit-packed (3 new kernels: `skc_keep_pack_kernel`, `skc_lora_inputs_kernel`,
+  `skc_lora_input_grad_kernel`, added to `warmup.py`; CPU bit-exact; compiled for sm_75; likeness to the
+  example ≤ 0.49), recomputed MLP dequantizes gate/up once in backward, batches without padding are packed
+  too (robustness for hidden data), README technical sections updated. Lab4 next: base, v41, v41rc
+  (profile). Plan: merge `claude/v4` into main after lab4, decide `SKC_RECOMPUTE` default, freeze.
