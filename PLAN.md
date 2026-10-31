@@ -273,7 +273,7 @@ Recompute is about score-neutral if we hold both bests, so the default is still 
 | C4 | integration, freeze 19:30 | Claude | todo | main | |
 | G1 | teammate's solution numbers | GPT | done | f55b1ef (team source) | Fresh T4: s=1.0658, m=1.7920, own=0.9%, 9/10; check4 fails |
 | G2 | faster NF4 dequant | GPT | in progress | gpt/nf4 / 659b935 | Word-load candidate; CPU parity diagnostic running without GPU; no code merged |
-| G3 | SUBMISSION, slides, video script, README results | GPT | in progress | gpt/docs | Submission and README drafts preserved; deck/script next |
+| G3 | SUBMISSION, slides, video script, README results | GPT | draft ready | gpt/docs | Editable 7-slide deck + PDF, 2:55 script, checkpoint README; team info/final figures pending |
 | G4 | final measured run, public notebook | GPT | after freeze | — | |
 | G5 | cold start (optional) | GPT | todo | gpt/warmup | |
 
@@ -324,3 +324,15 @@ Recompute is about score-neutral if we hold both bests, so the default is still 
   version1. Downloaded result/checks/manifest, verified result_sha256 and exact local team solution
   SHA against checks.json. G1 GPU job complete: slot available for my next G2 run; only one GPT GPU
   session will run/queue at a time. CPU diagnostic uses no accelerator.
+
+- 16:17 GPT: G3 draft ready on `gpt/docs`: `docs/decik-deck-draft.pptx` (editable), matching PDF and
+  `docs/video-script-draft.md` (287 spoken words; target 2:55 including Kaggle screen). Rendered and
+  inspected all seven slides, fixed final-slide spacing. Figures are explicitly labelled development
+  checkpoint `233282f`, not the integrated release. README changes are limited to Results, Run and
+  Limits; SUBMISSION remains a draft with final SHA/notebook, team info, video and final deck pending.
+  Asked Toktarkhan for team names/roles/captain contact; no invented personal details.
+- 16:17 GPT: G2 fused-GEMM feasibility: upstream Triton3.6.0 `AccelerateMatmul.cpp` lines344–350
+  explicitly returns FMA fallback for compute capability <80, including T4 sm75. Ordinary `tl.dot`
+  fusion therefore loses tensor-core acceleration in this pinned compiler; any fused-GEMM adoption
+  needs target-code proof and a faster full run, as the plan requires. Source:
+  https://github.com/triton-lang/triton/blob/v3.6.0/lib/Dialect/TritonGPU/Transforms/AccelerateMatmul.cpp#L344-L350
