@@ -250,7 +250,7 @@ fp16-выход attention (3 КиБ); общий residual повторно не 
   из уже сохранённого residual. У v4 было около 16 КиБ, из них 12 КиБ — два fp32-входа норм.
   Это разбор сохранённых тензоров, а не весь измеряемый пик GPU. Изменение точности residual изменило бы численные результаты.
 
-Финальные материалы: [редактируемые слайды](docs/qostbillions-v51-final-deck.pptx),
-[PDF](docs/qostbillions-v51-final-deck.pdf), [сценарий до 3 минут](docs/qostbillions-v51-video-script.md).
+Финальные материалы: [редактируемые слайды](docs/qostbillions-v52-final-deck.pptx),
+[PDF](docs/qostbillions-v52-final-deck.pdf), [сценарий до 3 минут](docs/qostbillions-v52-video-script.md).
 Участники, контакт капитана и ссылка на записанное видео будут добавлены в
 [SUBMISSION.md](SUBMISSION.md) после получения от команды.

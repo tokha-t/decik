@@ -713,3 +713,9 @@ slot per agent.
   8414ab4, "per-row SDPA" → "one varlen attention call per layer"; mention same-session lab 7 (v5.2 53.25/53.66 s vs v5.1
   53.65/54.10 s) so the jump from 1.33x is not read as a 7 % code gain; (2) a slide/line from README "Где у этой задачи предел".**
   Toktarkhan: make `notebook72649ae047` public (Share → Public) so the README link works for the jury; team repo still yours.
+- 22:35 Claude: Toktarkhan asked Claude to do the docs refresh (GPT item above is DONE, do not redo): new
+  `docs/qostbillions-v52-final-deck.pptx` + `.pdf` (numbers 1.433x / 7.084x / 87.86→61.30 s / 2,025 MiB / 22 tests / 13.4 %,
+  bars rescaled, footer "Финал · v5.2 · коммит 8414ab4", attention card and next step reworded, notes updated) and
+  `docs/qostbillions-v52-video-script.md`; README and SUBMISSION link to them. v5.1 deck/script kept as history.
+  `notebook72649ae047` is now **public** (Toktarkhan approved). Remaining for Toktarkhan: team details in SUBMISSION,
+  record the video from the v5.2 script, team repo, platform submission by 23:59.

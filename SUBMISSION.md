@@ -6,8 +6,8 @@
 - Measured v5.2 implementation (final): [`8414ab48cdc23c2ddb509f5418f41c2457d40811`](https://github.com/tokha-t/decik/commit/8414ab48cdc23c2ddb509f5418f41c2457d40811).
 - [Final validation notebook, saved version 364288750](https://www.kaggle.com/code/toktarkhan/notebook72649ae047?scriptVersionId=364288750); `COMMIT` is the SHA above.
 - Previous v5.1: [`d9ab004`](https://github.com/tokha-t/decik/commit/d9ab00419faa5d81ddf48fb35ec562284e5d62f9), [public G7 notebook, saved version 364261503](https://www.kaggle.com/code/toktarkhan/gpt-v51-final-validation?scriptVersionId=364261503).
-- Presentation: [editable PPTX](docs/qostbillions-v51-final-deck.pptx), [PDF](docs/qostbillions-v51-final-deck.pdf).
-- [Video narration, target 2:55](docs/qostbillions-v51-video-script.md).
+- Presentation: [editable PPTX](docs/qostbillions-v52-final-deck.pptx), [PDF](docs/qostbillions-v52-final-deck.pdf).
+- [Video narration, target 2:55](docs/qostbillions-v52-video-script.md).
 - Demo video, up to 3 minutes: **pending recording and link from the team**.
 - [Final validation evidence (v5.2)](docs/validation-v52/README.md); [G7 / v5.1 evidence](docs/validation/README.md).
 - Previous validated v4: [saved G4 run](https://www.kaggle.com/code/toktarkhan/qostbillions-final-validation?scriptVersionId=364217337), [preserved evidence](docs/validation-v4/README.md).
@@ -97,7 +97,7 @@ remain in `docs/validation-v4/`; original local G4 materials and evidence are pr
 
 ## Presentation covers
 
-Seven slides explain base memory costs, padding removal, recomputation, v5.1 norm-input
+Seven slides explain base memory costs, padding removal, recomputation and one-call attention, norm-input
 reconstruction, the chunked head, nine original kernels, measured speed/memory/quality,
 correctness, limits and next steps. Narration reserves 7–10 seconds for the saved Kaggle outputs.
 
