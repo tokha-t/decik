@@ -1,0 +1,12 @@
+{
+  "verification_time_local": "2026-10-31T19:17:37.535780+05:00",
+  "evidence_source": "Complete archive already present in workspace on resume",
+  "notebook_url": "https://www.kaggle.com/code/toktarkhan/gpt-warmup-lab/log",
+  "last_confirmed_saved_version": 2,
+  "live_metadata_reverified": false,
+  "archive_sha256": "3a4a6723eff4dee01384b3674945119d23b94830ef7bd1d43295e02d1978967e",
+  "manifest_sha256": "e4ced97439b37f794526549532843c194f21258ff5a58d4b0be2aad54e70a7a6",
+  "verified_manifest_files": 52,
+  "decision": "retain original thread; no adoption",
+  "original_manifest_preserved": true
+}

@@ -1,0 +1,49 @@
+{
+  "medians": {
+    "None": {
+      "wall_s": 60.105000000000004,
+      "loop_s": 36.75,
+      "apply_s": 8.565000000000001,
+      "first_step_s": 4.033799999999999,
+      "eval_loss": 2.049665
+    },
+    "1": {
+      "wall_s": 59.475,
+      "loop_s": 36.655,
+      "apply_s": 8.15,
+      "first_step_s": 3.9570499999999997,
+      "eval_loss": 2.04964
+    },
+    "2": {
+      "wall_s": 60.989999999999995,
+      "loop_s": 36.71,
+      "apply_s": 9.575,
+      "first_step_s": 3.97185,
+      "eval_loss": 2.049665
+    }
+  },
+  "probe_timelines": [
+    {
+      "mode": 0,
+      "start_to_ready_s": 3.867667619,
+      "ready_before_first_step_s": 6.882664933,
+      "wait_events": 0
+    },
+    {
+      "mode": 1,
+      "start_to_ready_s": 7.239118556,
+      "ready_before_first_step_s": 4.016363299,
+      "wait_events": 0
+    },
+    {
+      "mode": 2,
+      "start_to_ready_s": 8.637947545,
+      "ready_before_first_step_s": 3.56572818,
+      "wait_events": 0
+    }
+  ],
+  "nominal_one_worker_gain_s": 0.6300000000000026,
+  "two_worker_regression_s": 0.8849999999999909,
+  "adopt": false,
+  "reason": "Nominal gain is not robust against baseline drift; exact eval equality condition is not met."
+}

@@ -1,0 +1,55 @@
+{"event": "start", "pid": 1624, "time_ns": 1793455621121432926, "mode": 1}
+{"event": "processes_begin", "pid": 1624, "time_ns": 1793455621122322591, "count": 1}
+{"event": "compile_begin", "pid": 1640, "time_ns": 1793455621191800985, "shard": 0, "shards": 1}
+{"event": "kernel_begin", "pid": 1640, "time_ns": 1793455623287035733, "kernel": "skc_nf4_dequant_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1640, "time_ns": 1793455625043598819, "kernel": "skc_nf4_dequant_kernel", "shard": 0}
+{"event": "kernel_begin", "pid": 1640, "time_ns": 1793455625044058757, "kernel": "skc_rmsnorm_fwd_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1640, "time_ns": 1793455625172589807, "kernel": "skc_rmsnorm_fwd_kernel", "shard": 0}
+{"event": "kernel_begin", "pid": 1640, "time_ns": 1793455625172896345, "kernel": "skc_rmsnorm_bwd_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1640, "time_ns": 1793455625251554843, "kernel": "skc_rmsnorm_bwd_kernel", "shard": 0}
+{"event": "kernel_begin", "pid": 1640, "time_ns": 1793455625251956190, "kernel": "skc_rope_fwd_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1640, "time_ns": 1793455625411390716, "kernel": "skc_rope_fwd_kernel", "shard": 0}
+{"event": "kernel_begin", "pid": 1640, "time_ns": 1793455625411540415, "kernel": "skc_rope_bwd_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1640, "time_ns": 1793455625540214460, "kernel": "skc_rope_bwd_kernel", "shard": 0}
+{"event": "kernel_begin", "pid": 1640, "time_ns": 1793455625540443063, "kernel": "skc_keep_pack_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1640, "time_ns": 1793455625674133831, "kernel": "skc_keep_pack_kernel", "shard": 0}
+{"event": "kernel_begin", "pid": 1640, "time_ns": 1793455625674288554, "kernel": "skc_lora_inputs_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1640, "time_ns": 1793455625772310650, "kernel": "skc_lora_inputs_kernel", "shard": 0}
+{"event": "kernel_begin", "pid": 1640, "time_ns": 1793455625772375809, "kernel": "skc_lora_input_grad_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1640, "time_ns": 1793455625876419242, "kernel": "skc_lora_input_grad_kernel", "shard": 0}
+{"event": "kernel_begin", "pid": 1640, "time_ns": 1793455625877925540, "kernel": "example_swiglu_fwd_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1640, "time_ns": 1793455625942267013, "kernel": "example_swiglu_fwd_kernel", "shard": 0}
+{"event": "kernel_begin", "pid": 1640, "time_ns": 1793455625942395819, "kernel": "example_swiglu_bwd_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1640, "time_ns": 1793455626021456781, "kernel": "example_swiglu_bwd_kernel", "shard": 0}
+{"event": "kernel_begin", "pid": 1640, "time_ns": 1793455626021743092, "kernel": "skc_head_stats_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1640, "time_ns": 1793455626365382409, "kernel": "skc_head_stats_kernel", "shard": 0}
+{"event": "compile_end", "pid": 1640, "time_ns": 1793455626365580485, "shard": 0}
+{"event": "processes_end", "pid": 1624, "time_ns": 1793455627072015630, "count": 1}
+{"event": "compile_begin", "pid": 1624, "time_ns": 1793455627072151175, "shard": 0, "shards": 1}
+{"event": "kernel_begin", "pid": 1624, "time_ns": 1793455627079204654, "kernel": "skc_nf4_dequant_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1624, "time_ns": 1793455628317939752, "kernel": "skc_nf4_dequant_kernel", "shard": 0}
+{"event": "kernel_begin", "pid": 1624, "time_ns": 1793455628318157060, "kernel": "skc_rmsnorm_fwd_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1624, "time_ns": 1793455628321404377, "kernel": "skc_rmsnorm_fwd_kernel", "shard": 0}
+{"event": "kernel_begin", "pid": 1624, "time_ns": 1793455628321550460, "kernel": "skc_rmsnorm_bwd_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1624, "time_ns": 1793455628324680740, "kernel": "skc_rmsnorm_bwd_kernel", "shard": 0}
+{"event": "kernel_begin", "pid": 1624, "time_ns": 1793455628324975878, "kernel": "skc_rope_fwd_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1624, "time_ns": 1793455628330442130, "kernel": "skc_rope_fwd_kernel", "shard": 0}
+{"event": "kernel_begin", "pid": 1624, "time_ns": 1793455628330539417, "kernel": "skc_rope_bwd_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1624, "time_ns": 1793455628335429056, "kernel": "skc_rope_bwd_kernel", "shard": 0}
+{"event": "kernel_begin", "pid": 1624, "time_ns": 1793455628335583787, "kernel": "skc_keep_pack_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1624, "time_ns": 1793455628339381413, "kernel": "skc_keep_pack_kernel", "shard": 0}
+{"event": "kernel_begin", "pid": 1624, "time_ns": 1793455628339690679, "kernel": "skc_lora_inputs_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1624, "time_ns": 1793455628343661572, "kernel": "skc_lora_inputs_kernel", "shard": 0}
+{"event": "kernel_begin", "pid": 1624, "time_ns": 1793455628343762940, "kernel": "skc_lora_input_grad_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1624, "time_ns": 1793455628347400799, "kernel": "skc_lora_input_grad_kernel", "shard": 0}
+{"event": "kernel_begin", "pid": 1624, "time_ns": 1793455628347538356, "kernel": "example_swiglu_fwd_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1624, "time_ns": 1793455628349938253, "kernel": "example_swiglu_fwd_kernel", "shard": 0}
+{"event": "kernel_begin", "pid": 1624, "time_ns": 1793455628350027113, "kernel": "example_swiglu_bwd_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1624, "time_ns": 1793455628353225378, "kernel": "example_swiglu_bwd_kernel", "shard": 0}
+{"event": "kernel_begin", "pid": 1624, "time_ns": 1793455628353780601, "kernel": "skc_head_stats_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1624, "time_ns": 1793455628360416733, "kernel": "skc_head_stats_kernel", "shard": 0}
+{"event": "compile_end", "pid": 1624, "time_ns": 1793455628360483067, "shard": 0}
+{"event": "ready", "pid": 1624, "time_ns": 1793455628360551482, "mode": 1}
+{"event": "train_begin", "pid": 1624, "time_ns": 1793455632346637723}
+{"event": "first_step_begin", "pid": 1624, "time_ns": 1793455632376914781}
+{"event": "first_step_end", "pid": 1624, "time_ns": 1793455636534413333}

@@ -1,0 +1,29 @@
+{"event": "start", "pid": 1496, "time_ns": 1793455547129878017, "mode": 0}
+{"event": "compile_begin", "pid": 1496, "time_ns": 1793455547130311703, "shard": 0, "shards": 1}
+{"event": "kernel_begin", "pid": 1496, "time_ns": 1793455547142071237, "kernel": "skc_nf4_dequant_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1496, "time_ns": 1793455549350297456, "kernel": "skc_nf4_dequant_kernel", "shard": 0}
+{"event": "kernel_begin", "pid": 1496, "time_ns": 1793455549352204050, "kernel": "skc_rmsnorm_fwd_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1496, "time_ns": 1793455549480490142, "kernel": "skc_rmsnorm_fwd_kernel", "shard": 0}
+{"event": "kernel_begin", "pid": 1496, "time_ns": 1793455549481655089, "kernel": "skc_rmsnorm_bwd_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1496, "time_ns": 1793455549571520586, "kernel": "skc_rmsnorm_bwd_kernel", "shard": 0}
+{"event": "kernel_begin", "pid": 1496, "time_ns": 1793455549572919079, "kernel": "skc_rope_fwd_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1496, "time_ns": 1793455549754734793, "kernel": "skc_rope_fwd_kernel", "shard": 0}
+{"event": "kernel_begin", "pid": 1496, "time_ns": 1793455549755984556, "kernel": "skc_rope_bwd_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1496, "time_ns": 1793455549919219792, "kernel": "skc_rope_bwd_kernel", "shard": 0}
+{"event": "kernel_begin", "pid": 1496, "time_ns": 1793455549921380281, "kernel": "skc_keep_pack_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1496, "time_ns": 1793455550089219029, "kernel": "skc_keep_pack_kernel", "shard": 0}
+{"event": "kernel_begin", "pid": 1496, "time_ns": 1793455550090176838, "kernel": "skc_lora_inputs_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1496, "time_ns": 1793455550204672083, "kernel": "skc_lora_inputs_kernel", "shard": 0}
+{"event": "kernel_begin", "pid": 1496, "time_ns": 1793455550205369285, "kernel": "skc_lora_input_grad_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1496, "time_ns": 1793455550328245154, "kernel": "skc_lora_input_grad_kernel", "shard": 0}
+{"event": "kernel_begin", "pid": 1496, "time_ns": 1793455550329582103, "kernel": "example_swiglu_fwd_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1496, "time_ns": 1793455550464620237, "kernel": "example_swiglu_fwd_kernel", "shard": 0}
+{"event": "kernel_begin", "pid": 1496, "time_ns": 1793455550465126393, "kernel": "example_swiglu_bwd_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1496, "time_ns": 1793455550630560377, "kernel": "example_swiglu_bwd_kernel", "shard": 0}
+{"event": "kernel_begin", "pid": 1496, "time_ns": 1793455550633905711, "kernel": "skc_head_stats_kernel", "shard": 0}
+{"event": "kernel_end", "pid": 1496, "time_ns": 1793455550995332460, "kernel": "skc_head_stats_kernel", "shard": 0}
+{"event": "compile_end", "pid": 1496, "time_ns": 1793455550996582467, "shard": 0}
+{"event": "ready", "pid": 1496, "time_ns": 1793455550997545636, "mode": 0}
+{"event": "train_begin", "pid": 1496, "time_ns": 1793455557850341107}
+{"event": "first_step_begin", "pid": 1496, "time_ns": 1793455557880210569}
+{"event": "first_step_end", "pid": 1496, "time_ns": 1793455561865943740}

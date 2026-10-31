@@ -1,0 +1,10 @@
+OK  skc_nf4_dequant_kernel       regs=? spills=? shared=4096 warps=4
+OK  skc_rmsnorm_fwd_kernel       regs=? spills=? shared=32 warps=8
+OK  skc_rmsnorm_bwd_kernel       regs=? spills=? shared=32 warps=8
+OK  skc_head_stats_kernel        regs=? spills=? shared=32 warps=8
+OK  skc_rope_fwd_kernel          regs=? spills=? shared=0 warps=4
+OK  skc_rope_bwd_kernel          regs=? spills=? shared=0 warps=4
+OK  skc_keep_pack_kernel         regs=? spills=? shared=0 warps=2
+OK  skc_lora_inputs_kernel       regs=? spills=? shared=0 warps=4
+OK  skc_lora_input_grad_kernel   regs=? spills=? shared=0 warps=4
+

@@ -1,0 +1,11 @@
+
+test_background_sets_done_on_failure (test_warmup_process.WarmupProcessTest.test_background_sets_done_on_failure) ... ok
+test_shards_cover_every_kernel_once (test_warmup_process.WarmupProcessTest.test_shards_cover_every_kernel_once) ... ok
+test_start_is_idempotent_and_rejects_invalid_modes (test_warmup_process.WarmupProcessTest.test_start_is_idempotent_and_rejects_invalid_modes) ... ok
+test_timeout_reaps_child_before_parent_fallback (test_warmup_process.WarmupProcessTest.test_timeout_reaps_child_before_parent_fallback) ... ok
+test_worker_failure_retries_in_parent_and_preserves_cache_env (test_warmup_process.WarmupProcessTest.test_worker_failure_retries_in_parent_and_preserves_cache_env) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.015s
+
+OK

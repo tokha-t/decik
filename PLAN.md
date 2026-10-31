@@ -338,7 +338,7 @@ slot per agent.
 | G2 | faster NF4 dequant | GPT | done; original retained | 73ad7f7 / A-B | Both settings 10/10; 1024 faster than 4096 end-to-end; word/LUT not merged |
 | G3 | SUBMISSION, slides, video script, README results | GPT | done (technical materials) | gpt/docs | Final PPTX/PDF + ≤3 min script, README and SUBMISSION from G4; members/contact/recorded video pending Toktarkhan |
 | G4 | final measured run, public notebook | GPT | done | frozen 5c1bbe5 | 10/10; s=1.3427, m=6.6566, 2155 MiB; public saved version 364217337; hashes verified |
-| G5 | cold start subprocess experiment | GPT | waiting for Kaggle reconnection | gpt/warmup dfe0ad6 | CPU + sm75 pass; v2 last confirmed queued; status/quota now Unauthenticated; default unchanged |
+| G5 | cold start subprocess experiment | GPT | done; original thread retained | gpt/warmup dfe0ad6 | Hash-verified GPU A/B: one nominal −0.630s vs1.47s baseline drift; two +0.885s; exact eval gate unmet; no adoption |
 | G6 | GPU idle trace and attribution | GPT | done | gpt/trace-complete | Steps11–13 traced; corrected CPU labels/autograd attribution; docs/g6-idle-diagnosis.md |
 
 ## 10. Log (append only, newest last)
@@ -581,3 +581,22 @@ slot per agent.
   Existing-profile browser access remains disabled by Work settings; the separate Chrome
   connector is signed out of Kaggle. The authenticated Kaggle connector is the preferred route
   once reconnected. No runtime change on main; v4 stays validated. Hard stop21:00 still applies.
+
+- 19:17 GPT: resumed from workspace state, G6 already complete. G5 GPU archive now present locally;
++  verified all52 original files against manifest SHA-256 and ZIP bytes; summaries match original
++  results, all7 runs complete64 steps with seed1/no package changes. No duplicate GPU job submitted.
++  RESULT {"tag":"g5_cold_start","candidate":"dfe0ad6","frozen":"5c1bbe5","thread_wall_s":[59.37,60.84],"one_worker_wall_s":[59.43,59.52],"two_worker_wall_s":[60.79,61.19],"thread_median_s":60.105,"one_median_s":59.475,"two_median_s":60.990,"peak_mib":2155,"adopt":false}
++  One worker nominally saves0.630s, but baseline drift1.47s and first adjacent comparison+0.06s
++  do not establish a clear gain; eval values are within tiny existing noise but not identical as
++  required. Two workers lose0.885s. Retain original thread, candidate stays on gpt/warmup.
++  20GPU+79Soup pass for both modes; v5.1 warmup-file overlay passes21GPU numerical tests
++  (does not exercise start/lifecycle). All9sm75 and6CPU suites already passed.
++  Diagnostic ready→first-step lead: thread6.883s, one4.016s, two3.566s;11parent kernels each,
++  no waits/errors. Probe preimports Trainer so its import sequence/apply timings differ from
++  official measurements; do not interpret as official GIL/startup gains.
++  Report docs/g5-cold-start.md; complete original evidence plus separate derived/provenance
++  in docs/g5-validation/. Runtime/protected files unchanged; G4 public metrics remain v4.
++  Connector still gives Unauthenticated/permission denied, so live saved-version identity could
++  not be rechecked. G7 for Claude's d9ab004 is still a separate uncompleted full validation;
++  no v5 adoption or claim without it before21:00.
++
