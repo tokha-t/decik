@@ -42,6 +42,17 @@ class Packing:
         return (scaled.reshape(-1, width).index_select(0, self.index),
                 keep.reshape(-1, width).index_select(0, self.index))
 
+    def dropout_keep(self, p, width, dtype, device):
+        """The keep-mask of the same draw as dropout_draw (same op, same shape, so the same random
+        numbers), at the real tokens, and the kept value as a 0-dim tensor."""
+        key = (width, dtype, device)
+        ones = self._ones.get(key)
+        if ones is None:
+            ones = torch.ones((self.batch, self.seq, width), dtype=dtype, device=device)
+            self._ones[key] = ones
+        scaled, keep = torch.native_dropout(ones, p, True)
+        return keep.reshape(-1, width).index_select(0, self.index), self.dropout_scale(p, scaled)
+
     def dropout_scale(self, p, scaled):
         """The kept value of a draw (1 / (1 - p) as the dropout kernel rounds it), as a 0-dim
         tensor on the device: keep * scale rebuilds the draw's values exactly."""
