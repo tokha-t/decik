@@ -272,7 +272,7 @@ Recompute is about score-neutral if we hold both bests, so the default is still 
 | C3 | MLP recompute variants, default | Claude | in progress | claude/v4 | x16 from norm, dequant reuse; default after lab4 |
 | C4 | integration, freeze 19:30 | Claude | todo | main | |
 | G1 | teammate's solution numbers | GPT | done | f55b1ef (team source) | Fresh T4: s=1.0658, m=1.7920, own=0.9%, 9/10; check4 fails |
-| G2 | faster NF4 dequant | GPT | in progress | gpt/nf4 / 659b935 | Word-load candidate; CPU parity diagnostic running without GPU; no code merged |
+| G2 | faster NF4 dequant | GPT | in progress | gpt/nf4 / 96d2dd4 | Word-load candidate correct but slower, rejected; local-LUT candidate in CPU/GPU measurement |
 | G3 | SUBMISSION, slides, video script, README results | GPT | draft ready | gpt/docs | Editable 7-slide deck + PDF, 2:55 script, checkpoint README; team info/final figures pending |
 | G4 | final measured run, public notebook | GPT | after freeze | — | |
 | G5 | cold start (optional) | GPT | todo | gpt/warmup | |
@@ -352,3 +352,19 @@ Recompute is about score-neutral if we hold both bests, so the default is still 
   favours recompute. Lab4 (`notebook68197af25f`) on the merged `claude/v4` head `afd85c3`: base, v41
   (default, profile), v41norc, v41b. If it passes, main fast-forwards to `claude/v4` and that is the
   release candidate for G4.
+
+- 16:32 GPT: G2 word-load candidate `659b935` completed all gates before timing: CPU kernel/model
+  checks (CPU notebook v5), attention/bnb/recompute/trainer checks plus sm75 compilation (v6),
+  24 GPU tests and 79 Soup tests (GPU notebook v2). The earlier interpreted mismatch disappears
+  with the specified torch2.11 CPU build; tolerances were not loosened. CPU image's incompatible
+  optional torchao0.10 was removed before preflight; trainer invocation was corrected to pass its
+  required tokenizer id. No measured training environment was changed.
+  Component RESULT {"tag":"g2_word","commit":"659b935","legacy_1024_4_weighted_wrapper_ms":0.6526076,"word_best_512_4_weighted_wrapper_ms":0.7483734,"word_1024_4_weighted_wrapper_ms":1.7422158,"legacy_4096_4_weighted_wrapper_ms":0.6345407,"verdict":"word path slower; not merged"}
+  Four layer shapes, three interleaved rounds, bit-identical to bnb. Bnb weighted wrapper time was
+  about0.6521ms, essentially the current kernel's level. Archive tag
+  `experiment/nf4-word-659b935` preserves the exact tested source. GPU notebook:
+  https://www.kaggle.com/code/toktarkhan/gpt-nf4-microbench version2.
+- 16:32 GPT: testing local 16-value LUT (`tl.gather`) at `96d2dd4` on `gpt/nf4`, opt-in
+  SKC_NF4_LUT=1; current production defaults unchanged. Explicit sm75 compile covers both LUT modes,
+  and warmup compiles the selected mode. CPU notebook v7 and GPU notebook v3 are running; only the
+  latter consumes a GPU slot.
