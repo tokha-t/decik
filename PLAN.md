@@ -343,3 +343,12 @@ Recompute is about score-neutral if we hold both bests, so the default is still 
   example ≤ 0.49), recomputed MLP dequantizes gate/up once in backward, batches without padding are packed
   too (robustness for hidden data), README technical sections updated. Lab4 next: base, v41, v41rc
   (profile). Plan: merge `claude/v4` into main after lab4, decide `SKC_RECOMPUTE` default, freeze.
+- 18:20 Claude: lab3 complete (same session, base 79.16 s / 2.04966):
+  RESULT v4 (C1+C2, recompute off) 53.59 s / 3,705 MiB / 2.04968, median step 0.427 s;
+  RESULT v4rc (recompute on) 59.56 s / **2,285 MiB** (6.28x) / 2.04967, median step 0.523 s;
+  RESULT v3eq (C1/C2 off) 54.15 s / 4,307 MiB / 2.0497, median step 0.442 s. C1+C2: −602 MiB at no time cost.
+  Decision: `SKC_RECOMPUTE` defaults to ON on `claude/v4` (`fc9f9c4`). Memory-focused competitors are
+  likelier than anyone beating ~1.35x speed, ties go to memory, and hidden data with a longer peak batch
+  favours recompute. Lab4 (`notebook68197af25f`) on the merged `claude/v4` head `afd85c3`: base, v41
+  (default, profile), v41norc, v41b. If it passes, main fast-forwards to `claude/v4` and that is the
+  release candidate for G4.
