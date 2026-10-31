@@ -336,11 +336,11 @@ slot per agent.
 | C4 | integration, freeze | Claude | done | main | **code frozen 16:40**; solution/ = lab4-tested `afd85c3` |
 | G1 | teammate's solution numbers | GPT | done | f55b1ef (team source) | Fresh T4: s=1.0658, m=1.7920, own=0.9%, 9/10; check4 fails |
 | G2 | faster NF4 dequant | GPT | done; original retained | 73ad7f7 / A-B | Both settings 10/10; 1024 faster than 4096 end-to-end; word/LUT not merged |
-| G3 | SUBMISSION, slides, video script, README results | GPT | done (technical materials) | gpt/docs | Final PPTX/PDF + ≤3 min script, README and SUBMISSION from G4; members/contact/recorded video pending Toktarkhan |
+| G3 | SUBMISSION, slides, video script, README results | GPT | done (v5.1 technical materials) | gpt/g7 | Final v5.1 PPTX/PDF +260-word script, README/SUBMISSION from G7; team details/recorded video pending Toktarkhan |
 | G4 | final measured run, public notebook | GPT | done | frozen 5c1bbe5 | 10/10; s=1.3427, m=6.6566, 2155 MiB; public saved version 364217337; hashes verified |
 | G5 | cold start subprocess experiment | GPT | done; original thread retained | gpt/warmup dfe0ad6 | Hash-verified GPU A/B: one nominal −0.630s vs1.47s baseline drift; two +0.885s; exact eval gate unmet; no adoption |
 | G6 | GPU idle trace and attribution | GPT | done | gpt/trace-complete | Steps11–13 traced; corrected CPU labels/autograd attribution; docs/g6-idle-diagnosis.md |
-| G7 | Full v5.1 public validation | GPT | running on T4 x2 | d9ab004 / saved364261503 | Native Chrome confirms worker running;21GPU/79Soup,2repeats/checks pending; v4 retained until success |
+| G7 | Full v5.1 public validation | GPT | done; v5.1 adopted | d9ab004 / saved364261503 | 10/10;1.3339x /7.0491x,2035MiB;21GPU/79Soup; exact hashes verified; final materials updated before21:00 |
 
 ## 10. Log (append only, newest last)
 
@@ -651,3 +651,24 @@ slot per agent.
   interactive draft was inspected read-only and is OFF; no notebook/code/session changed.
   GPT G7 editor is also OFF; only the saved batch runs. Waiting for pinned-version tests,
   full2repeat base/solution measurements,checker,score and archive.
+
+- 20:18 GPT: G7 COMPLETE before21:00 on exact d9ab00419faa5d81ddf48fb35ec562284e5d62f9.
+  RESULT {"tag":"g7_v51_final","commit":"d9ab00419faa5d81ddf48fb35ec562284e5d62f9","base_wall_s":85.21,"wall_s":63.88,"base_peak_mib":14345,"peak_mib":2035,"speedup":1.3339,"memory_ratio":7.0491,"eval_base":2.04967,"eval_solution":2.04964,"quality_delta_pct":-0.001,"own_share_pct":13.0,"checks":"10/10","repeats":2,"gpu_tests":21,"soup_tests":79}
+  Public saved Version1: https://www.kaggle.com/code/toktarkhan/gpt-v51-final-validation?scriptVersionId=364261503
+  Chrome log: Successfully ran in566.4s, ALL CHECKS PASSED. Downloaded exact g7-evidence.zip
+  through its file control; ZIP integrity passes. Result SHA256
+  9366fe839448718f404a08264e13887d98990ad6837402d35d82ad0bd74ddcf2;
+  exact Git-blob solution SHA256 bdf21a6adb90887482ad0facaa421dc0173e8ae075d8ba4678c4166d91fcaa42;
+  archive SHA256 3b57322489e087219200b61bf90db6a7265e8ea0bbac073d763917d255bbcc94.
+  Independent verifier checks all7 original files,64steps,seed1,default env,oneT4,allocator,
+  unchanged packages/protected kit,9own kernels and eval within0.0001.
+  Adopted only authorized v5.1 via merge preserving Claude commits; solution/ byte-identical
+  to measured d9ab004. Rejected G5 workers and v5.2 are not included. Protected files unchanged.
+  README/SUBMISSION, final7-slide v5.1 PPTX/PDF and260-word≤3min script updated. All slides
+  rendered and visually checked. Original G4 bytes archived in docs/validation-v4; old local
+  outputs and public saved version preserved. Final archive/evidence are in docs/validation.
+  Minimal post-freeze technical README corrections match C5, LoRA forward reuse and the
+  saved-memory table:≈13.4KiB/token/layer,≈9KiB norm sources. AddRMSNorm is an autograd wrapper,
+  not a new fused Triton add+norm kernel. No further runtime edits beyond measured candidate.
+  Team info/contact/recorded video and platform submission remain Toktarkhan's; official team
+  repository untouched. No GPU job remains active from GPT.

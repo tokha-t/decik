@@ -1,24 +1,22 @@
-# Final validation evidence
+# Final G7 validation evidence — v5.1
 
-[Public Kaggle saved version 364217337](https://www.kaggle.com/code/toktarkhan/qostbillions-final-validation?scriptVersionId=364217337), frozen implementation
-[`5c1bbe5`](https://github.com/tokha-t/decik/commit/5c1bbe560c08b0323eefeb843a0baf00e400e774), defaults only.
+[Public saved version 364261503](https://www.kaggle.com/code/toktarkhan/gpt-v51-final-validation?scriptVersionId=364261503), measured implementation
+[`d9ab004`](https://github.com/tokha-t/decik/commit/d9ab00419faa5d81ddf48fb35ec562284e5d62f9), defaults only. Previous [v4/G4 evidence](../validation-v4/README.md) is preserved.
 
-- [result.json](result.json): original harness output (two base and two solution runs).
-- [checks.json](checks.json): 10/10 verdict and hashes.
-- [manifest.json](manifest.json): original notebook manifest, versions and summary.
-- [gpu-tests.log](gpu-tests.log): 20 GPU tests passed.
-- [soup-preflight.log](soup-preflight.log): 79 Soup tests passed with solution applied.
-- [checks.log](checks.log): rule checker output, including a further 79 Soup tests.
-- [score.log](score.log): `all checks passed on this result: True`; total points require other teams' best ratios and README review.
-- [provenance.json](provenance.json): separately recorded public notebook identity and hash-verification notes.
+- [result.json](result.json): original harness output, two base and two solution runs.
+- [checks.json](checks.json): 10/10 verdict and result/source hashes.
+- [manifest.json](manifest.json): original G7 manifest, versions, SHA and summary.
+- [gpu-tests.log](gpu-tests.log): 21 GPU tests passed.
+- [soup-preflight.log](soup-preflight.log): 79 Soup tests passed with solution enabled.
+- [checks.log](checks.log): rule checker output, including another 79 Soup tests.
+- [score.log](score.log): all checks passed on this result; points require best team ratios and README review.
+- [Original ZIP](g7-evidence.zip) and [independent verification](verification.json).
+- [publication-provenance.json](publication-provenance.json): separate publication identity and hash notes.
 
-The original Kaggle JSON/log bytes are preserved. `provenance.json` was added locally;
-it is separate from the notebook's original manifest and ZIP.
+Original Kaggle result/checks/manifest/log bytes are copied unchanged. Local publication provenance
+is separate from the original notebook manifest/archive. Source hashing uses sorted relative paths
+and Git blob bytes in `solution/`, as the checker does; it includes solution tests, excluding caches.
 
-Result SHA-256: `7434230cff6fa598cada142143d6ded954a4c328531df6c2c5e89d3d030265f5`.
+Result SHA-256: `9366fe839448718f404a08264e13887d98990ad6837402d35d82ad0bd74ddcf2`.
 
-Solution SHA-256: `d6ef76a142b4ffbbaaad584201fd25469136f15c69ca37106b062b2c9283e6ab`.
-
-The source hash is computed as the checker does: sorted paths relative to `solution/`, followed
-by each file's bytes. It was checked against the exact frozen Git blobs, not the working-tree label.
-Later commits only add documentation and validation material; they do not change `solution/`.
+Solution SHA-256: `bdf21a6adb90887482ad0facaa421dc0173e8ae075d8ba4678c4166d91fcaa42`.

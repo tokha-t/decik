@@ -1,0 +1,41 @@
+{
+  "notebook_url": "https://www.kaggle.com/code/toktarkhan/gpt-v51-final-validation?scriptVersionId=364261503",
+  "saved_version_id": 364261503,
+  "saved_version_number": 1,
+  "candidate_sha": "d9ab00419faa5d81ddf48fb35ec562284e5d62f9",
+  "archive_sha256": "3b57322489e087219200b61bf90db6a7265e8ea0bbac073d763917d255bbcc94",
+  "independent_solution_sha256": "bdf21a6adb90887482ad0facaa421dc0173e8ae075d8ba4678c4166d91fcaa42",
+  "verified_files": [
+    "checks.json",
+    "checks.log",
+    "gpu-tests.log",
+    "manifest.json",
+    "result.json",
+    "score.log",
+    "soup-preflight.log"
+  ],
+  "summary": {
+    "base": {
+      "ok": true,
+      "runs": 2,
+      "wall_s": 85.21,
+      "gpu_peak_mib": 14345,
+      "train_loop_s": 60.64,
+      "eval_loss": 2.04967
+    },
+    "solution": {
+      "ok": true,
+      "runs": 2,
+      "wall_s": 63.88,
+      "gpu_peak_mib": 2035,
+      "train_loop_s": 39.38,
+      "eval_loss": 2.04964
+    },
+    "ratios": {
+      "speedup": 1.3339,
+      "memory_ratio": 7.0491,
+      "quality_delta_pct": -0.001
+    }
+  },
+  "all_checks_pass": true
+}

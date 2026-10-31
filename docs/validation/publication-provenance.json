@@ -1,0 +1,17 @@
+{
+  "notebook_url": "https://www.kaggle.com/code/toktarkhan/gpt-v51-final-validation?scriptVersionId=364261503",
+  "saved_version_id": 364261503,
+  "saved_version_number": 1,
+  "is_private": false,
+  "measured_implementation_commit": "d9ab00419faa5d81ddf48fb35ec562284e5d62f9",
+  "result_sha256": "9366fe839448718f404a08264e13887d98990ad6837402d35d82ad0bd74ddcf2",
+  "solution_sha256": "bdf21a6adb90887482ad0facaa421dc0173e8ae075d8ba4678c4166d91fcaa42",
+  "hash_verification": "Downloaded result bytes; checker source hash equals the independently computed exact-candidate Git blob hash.",
+  "prior_g4_evidence": "docs/validation-v4/",
+  "publication_note": "Public saved Version1 ID, exact COMMIT cell, runtime package versions, successful log and original evidence ZIP verified through Chrome; source and result hashes independently checked locally.",
+  "verified_at_utc": "2026-10-31T15:18:20.456453+00:00",
+  "archive_sha256": "3b57322489e087219200b61bf90db6a7265e8ea0bbac073d763917d255bbcc94",
+  "public_visibility_observation": "Chrome Share: Public selected and sharing settings saved; private badge absent.",
+  "completion_observation": "Saved version364261503 displayed Successfully ran in566.4s and ALL CHECKS PASSED.",
+  "completed_before_2100_Asia_Almaty": true
+}
