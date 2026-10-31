@@ -45,6 +45,7 @@ def apply():
     if _enabled("HEAD"):
         head.patch()
         if _enabled("VARLEN"):
-            varlen.patch(recompute_attention=_enabled("ATTN_RECOMPUTE"))
+            varlen.patch(recompute_attention=_enabled("ATTN_RECOMPUTE"),
+                         fuse_residual=_enabled("ADDNORM"))
             if _enabled("ATTN"):
                 attn.patch(recompute_lora=_enabled("LORA_RECOMPUTE"))
