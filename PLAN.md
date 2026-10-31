@@ -338,7 +338,8 @@ slot per agent.
 | G2 | faster NF4 dequant | GPT | done; original retained | 73ad7f7 / A-B | Both settings 10/10; 1024 faster than 4096 end-to-end; word/LUT not merged |
 | G3 | SUBMISSION, slides, video script, README results | GPT | done (technical materials) | gpt/docs | Final PPTX/PDF + ≤3 min script, README and SUBMISSION from G4; members/contact/recorded video pending Toktarkhan |
 | G4 | final measured run, public notebook | GPT | done | frozen 5c1bbe5 | 10/10; s=1.3427, m=6.6566, 2155 MiB; public saved version 364217337; hashes verified |
-| G5 | cold start (optional) | GPT | deferred | — | Release frozen; prioritize final validation and evidence |
+| G5 | cold start subprocess experiment | GPT | queued after G6 | gpt/warmup | Section12 approved round; require same-session ≥0.5s gain and identical eval loss |
+| G6 | GPU idle trace and attribution | GPT | in progress | gpt/trace | v4 unchanged; capture CPU+CUDA with stacks at steps11–13, findings due18:30 |
 
 ## 10. Log (append only, newest last)
 
@@ -503,3 +504,8 @@ slot per agent.
   MLP rebuilds its input from (layer input, fp16 attention output). CPU: bit-identical loss and all LoRA grads vs
   the unfused layer; full suite passes; GPU test added. Lab5 (`notebook2e58eecd1b`) running: base, v5 (profile),
   v4eq (SKC_ADDNORM=0), v5b. One Claude GPU slot in use.
+
+- 17:31 GPT: accepted section12 and user instruction G6 → G5, hard stop21:00 Asia/Almaty.
+  G6 starts on `gpt/trace` from main a44a82a (v4 runtime). Will add only dev tracing/analysis and
+  a GPT-owned diagnostic notebook; no solution/ changes. One GPT GPU slot maximum.
+  G5 will follow on `gpt/warmup`, retaining v4 as final unless measured gates pass.
