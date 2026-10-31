@@ -340,7 +340,7 @@ slot per agent.
 | G4 | final measured run, public notebook | GPT | done | frozen 5c1bbe5 | 10/10; s=1.3427, m=6.6566, 2155 MiB; public saved version 364217337; hashes verified |
 | G5 | cold start subprocess experiment | GPT | done; original thread retained | gpt/warmup dfe0ad6 | Hash-verified GPU A/B: one nominal −0.630s vs1.47s baseline drift; two +0.885s; exact eval gate unmet; no adoption |
 | G6 | GPU idle trace and attribution | GPT | done | gpt/trace-complete | Steps11–13 traced; corrected CPU labels/autograd attribution; docs/g6-idle-diagnosis.md |
-| G7 | Full v5.1 public validation | GPT | preparing; retrying Kaggle access | gpt/g7 / d9ab004 | Pin authorized candidate;21GPU/79Soup,2repeats,10checks and exact hashes; v4 retained until success |
+| G7 | Full v5.1 public validation | GPT | prepared; waiting for server credential | gpt/g7 / d9ab004 | Notebook pushed; no job submitted. Saved MCP credential rejected; browser draft stuck Editor Loading. v4 retained. |
 
 ## 10. Log (append only, newest last)
 
@@ -608,3 +608,17 @@ slot per agent.
   No rejected G5 overlay; protected kit unchanged. Account actions still Unauthenticated after
   reported reconnect; public metadata reads work. Checking browser fallback while notebook is prepared.
   No G7 run has been submitted yet; v4 results and runtime remain unchanged.
+
+- 19:33 GPT: G7 notebook syntax, candidate source hash and protected-kit identity independently
+  verified. User reconnected the ChatGPT Kaggle plugin, but Codex's separate `kaggle` MCP server
+  still rejects its saved Authorization credential: quota/status/search/save and a direct
+  authenticated server call all return Unauthenticated. No credential values printed or changed.
+  Standard sign-in refresh (`codex mcp login`, including DCR mode) returned a Kaggle authorize
+  URL rejected by the service with ClientId too small: codex; both waiting login processes stopped.
+  Browser fallback created draft https://www.kaggle.com/code/toktarkhan/gpt-v51-final-validation/edit
+  from the pushed notebook and selected T4x2/internet. Editor remains Loading, including for
+  Toktarkhan; attempted Save has produced zero saved versions. No G7 batch exists or is queued.
+  Asked for the Codex MCP connection's saved credential to be updated in settings (not sent in chat).
+  Notebook exported locally; a strict G7 deck generator is ready, but no replacement figures
+  generated. Runtime and release materials remain validated v4. Resume with one G7 saved run
+  on d9ab004 once the configured server authenticates; keep section12 hard stop21:00.
