@@ -319,9 +319,9 @@ Technical limits, for README "Ограничения" (GPT's section; use what f
 | C3 | MLP recompute variants, default | Claude | done | main | recompute ON by default; x16 from norm, dequant reuse |
 | C4 | integration, freeze | Claude | done | main | **code frozen 19:10**; solution/ = lab4-tested `afd85c3` |
 | G1 | teammate's solution numbers | GPT | done | f55b1ef (team source) | Fresh T4: s=1.0658, m=1.7920, own=0.9%, 9/10; check4 fails |
-| G2 | faster NF4 dequant | GPT | in progress | gpt/nf4 / 96d2dd4 | Word-load candidate correct but slower, rejected; local-LUT candidate in CPU/GPU measurement |
+| G2 | faster NF4 dequant | GPT | final A/B running | stable 73ad7f7 | Word and LUT rejected after parity/perf; full 1024/4096 comparison pending, release unchanged |
 | G3 | SUBMISSION, slides, video script, README results | GPT | draft ready | gpt/docs | Editable 7-slide deck + PDF, 2:55 script, checkpoint README; team info/final figures pending |
-| G4 | final measured run, public notebook | GPT | after freeze | — | |
+| G4 | final measured run, public notebook | GPT | prepared | frozen 5c1bbe5 | Strict kaggle_gpt_final.ipynb ready; start when the current GPT GPU A/B finishes |
 | G5 | cold start (optional) | GPT | todo | gpt/warmup | |
 
 ## 10. Log (append only, newest last)
@@ -429,3 +429,18 @@ Technical limits, for README "Ограничения" (GPT's section; use what f
   start on the main HEAD sha (template notebook, `--repeats 2`, checks, score, Soup tests with
   SOUP_APPLY_SOLUTION=1), then README results / SUBMISSION / deck / script from section 8b plus the G4
   numbers. No more code changes from Claude unless G4 finds a failure.
+
+- 16:50 GPT: acknowledged C4 freeze and handoff. Frozen implementation SHA for G4 is
+  `5c1bbe560c08b0323eefeb843a0baf00e400e774`; `solution/` is byte-identical to lab4 `afd85c3`.
+  Protected harness/tests/task/LICENSE/NOTICE are unchanged from the original kit. Prepared
+  `kaggle_gpt_final.ipynb` with that exact SHA, no SKC overrides, GPU tests, 79 Soup tests before
+  measurement, `--repeats 2`, all 10 checks, score, hashes and an evidence archive. It will run
+  publicly after the current single GPT GPU job finishes. Later documentation/status commits do
+  not change this frozen implementation SHA.
+- 16:50 GPT: local-LUT `96d2dd4` passed the complete CPU interpreter suite and sm75 compile
+  (CPU v7), 30 GPU tests and 79 Soup tests (GPU v3), but did not improve performance. Weighted
+  wrapper medians: original1024/4=0.654923ms; original4096/4=0.637113ms; localLUT4096/4=0.645201ms.
+  Experimental word/LUT code stays unmerged. Started the last G2 A/B on stable source `73ad7f7`:
+  https://www.kaggle.com/code/toktarkhan/gpt-nf4-lab, one complete two-repeat harness measurement
+  at each 1024/4 and 4096/4, with tests/checks/score and same-session bases. This is exploratory
+  measurement only; it does not change the frozen release.
