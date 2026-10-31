@@ -1,7 +1,8 @@
 """Attribute GPU-idle gaps in a trace_run.py Chrome trace without double counting.
 
 Intervals from all GPU streams are merged first. Gaps > --min-gap-ms within each
-SKC_TRACE_STEP range are split at CPU event boundaries on that step's training thread.
+SKC_TRACE_STEP range are split at CPU event boundaries on the training and CUDA-launch
+threads (including the autograd worker).
 The most specific CUDA runtime event wins, then the innermost CPU op, then Python.
 Python leaf callers are reported separately. Overlap is attribution, not proof that an
 operation caused the stall. Profiler/stack and official watcher overhead remain present.
@@ -47,11 +48,19 @@ def cpu_kind(event):
 
 def analyze(events, min_gap_ms=0.2):
     spans = [e for e in events if e.get("ph") == "X" and e.get("dur", 0) > 0]
-    steps = sorted([e for e in spans if re.fullmatch(r"SKC_TRACE_STEP_\d+", e.get("name", ""))], key=lambda e:e["ts"])
+    # Kineto copies user ranges onto CUDA streams as gpu_user_annotation. Those
+    # are labels, not extra training steps (nor GPU kernels).
+    steps = sorted([e for e in spans if e.get("cat") == "user_annotation"
+                    and re.fullmatch(r"SKC_TRACE_STEP_\d+", e.get("name", ""))],
+                   key=lambda e:e["ts"])
     if not steps:
         raise ValueError("No SKC_TRACE_STEP ranges in trace")
+    if len({e["name"] for e in steps}) != len(steps):
+        raise ValueError("Duplicate CPU step labels; analyze one trace capture at a time")
     gpu = [e for e in spans if gpu_event(e)]
     cpu = [e for e in spans if cpu_kind(e) is not None]
+    launch_threads = {(e.get("pid"), str(e.get("tid"))) for e in cpu
+                      if cpu_kind(e) == 0 and "LaunchKernel" in e.get("name", "")}
     causes, python, pairs = Counter(), Counter(), Counter()
     gaps = []
     step_rows = []
@@ -66,8 +75,9 @@ def analyze(events, min_gap_ms=0.2):
                 idle.append([cursor,start])
             cursor = max(cursor,end)
         gap_causes = [Counter() for _ in idle]
-        selected = [e for e in cpu if str(e.get("tid")) == str(step.get("tid"))
-                    and e.get("pid") == step.get("pid")
+        selected = [e for e in cpu if e.get("pid") == step.get("pid")
+                    and (str(e.get("tid")) == str(step.get("tid"))
+                         or (e.get("pid"), str(e.get("tid"))) in launch_threads)
                     and e["ts"] < hi and e["ts"]+e["dur"] > lo]
         points = []
         for idx,e in enumerate(selected):
@@ -124,10 +134,13 @@ def analyze(events, min_gap_ms=0.2):
             "all_idle_ms_per_step":sum(x["all_idle_ms"] for x in step_rows)/n,
             "gaps_over_threshold_ms_per_step":threshold_idle/n,
             "top_causes":[{"kind":k[0],"name":k[1],"ms_per_step":v/1000/n} for k,v in causes.most_common(10)],
+            "all_causes":[{"kind":k[0],"name":k[1],"ms_per_step":v/1000/n} for k,v in causes.most_common()],
+            "runtime_overlaps":[{"name":k[1],"ms_per_step":v/1000/n} for k,v in causes.most_common() if k[0] == "runtime"],
             "top_python_callers":[{"name":k,"ms_per_step":v/1000/n} for k,v in python.most_common(10)],
             "top_operation_callers":[{"kind":k[0],"operation":k[1],"python":k[2],"ms_per_step":v/1000/n} for k,v in pairs.most_common(20)],
             "gaps":sorted(gaps,key=lambda x:-x["duration_ms"]),
-            "method":"GPU interval union across streams; exclusive CPU/runtime leaf attribution on training thread. Python caller times are a separate view, not additive.",
+            "cpu_threads":sorted([str(tid) for pid,tid in launch_threads if pid == steps[0].get("pid")]),
+            "method":"CPU step annotations only; GPU interval union across streams; exclusive CPU/runtime leaf attribution on training plus CUDA-launch threads, including autograd. Runtime > CPU op > Python, then shortest enclosing span. Python caller times are a separate view, not additive.",
             "caveat":"Temporal overlap, not causal proof. Profiler with_stack and harness TritonWatch instrumentation can inflate CPU overhead. Use unprofiled controls for performance decisions."}
 
 

@@ -338,8 +338,8 @@ slot per agent.
 | G2 | faster NF4 dequant | GPT | done; original retained | 73ad7f7 / A-B | Both settings 10/10; 1024 faster than 4096 end-to-end; word/LUT not merged |
 | G3 | SUBMISSION, slides, video script, README results | GPT | done (technical materials) | gpt/docs | Final PPTX/PDF + ≤3 min script, README and SUBMISSION from G4; members/contact/recorded video pending Toktarkhan |
 | G4 | final measured run, public notebook | GPT | done | frozen 5c1bbe5 | 10/10; s=1.3427, m=6.6566, 2155 MiB; public saved version 364217337; hashes verified |
-| G5 | cold start subprocess experiment | GPT | queued after G6 | gpt/warmup | Section12 approved round; require same-session ≥0.5s gain and identical eval loss |
-| G6 | GPU idle trace and attribution | GPT | in progress | gpt/trace | v4 unchanged; capture CPU+CUDA with stacks at steps11–13, findings due18:30 |
+| G5 | cold start subprocess experiment | GPT | in progress | gpt/warmup | G6 complete; require same-session ≥0.5s gain and identical eval loss |
+| G6 | GPU idle trace and attribution | GPT | done | gpt/trace-complete | Steps11–13 traced; corrected CPU labels/autograd attribution; docs/g6-idle-diagnosis.md |
 
 ## 10. Log (append only, newest last)
 
@@ -522,3 +522,25 @@ slot per agent.
   **v5.1 is the v5 candidate → GPT: G7 GO on `d9ab004`** (template notebook, `--repeats 2`, checks, score, Soup tests).
   If it passes, main moves to it. Meanwhile Claude tests v5.2 (`claude/v52`, varlen attention: one launch per layer
   instead of a per-row loop) in lab7. If v5.2 clearly wins, a second G7 runs on it before 21:00; otherwise v5.1 is final.
+
+- 18:11 GPT: G6 COMPLETE. Notebook https://www.kaggle.com/code/toktarkhan/gpt-v4-idle-trace?scriptVersionId=364227255
+  source7ebed81, frozen v4 solution unchanged;64steps each, CPU+CUDA steps11–13 with_stack and no-stack control.
+  Corrected analyzer excludes GPU label copies and includes the CUDA-launch/autograd worker thread.
+  With-stack mean wall730.292ms, GPU239.850ms, idle490.442ms; gaps>0.2ms292.856ms/step.
+  Top10 exclusive CPU-overlap entries (ms/step):
+  NF4Linear: 26.342;
+  LoRAPairFromNormBackward: 23.567;
+  torch/nn/modules/module.py(2882): named_modules: 18.554;
+  NF4LinearBackward: 18.084;
+  PackedSDPABackward: 15.761;
+  RecomputedMLPBackward: 14.228;
+  RMSNormFn: 10.473;
+  FusedQKRope: 9.455;
+  aten::empty: 8.660;
+  FusedQKRopeBackward: 7.792;
+  No-stack control wall528.804ms, GPU245.731ms, gaps>0.2ms91.738ms/step. Python-stack capture
+  itself adds~201ms/step; these are NOT recoverable unprofiled gains. No-stack sync overlap0.026ms,
+  memcpy runtime0.039ms per step in those gaps. Dispatch/autograd around LoRA, NF4, RoPE and per-row
+  SDPA dominate identifiable work; owner Claude can use this evidence (v52 addresses SDPA).
+  Report docs/g6-idle-diagnosis.md; corrected analyses/metrics docs/g6-validation/. All original
+  evidence hashes verified; raw22MiB ZIP and traces local. Six analyzer tests pass. G5 starts next.

@@ -1,0 +1,8 @@
+{
+  "exit_code": 0,
+  "diagnostic_only": true,
+  "wall_s": 62.19,
+  "gpu_peak_mib": 2167,
+  "gpu_start_mib": 0,
+  "source_commit": "7ebed815c9cf3bbddc510474a6298b3254128802"
+}

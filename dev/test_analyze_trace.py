@@ -36,6 +36,28 @@ class TraceAnalysisTest(unittest.TestCase):
                    event("background",0,1000,"cpu_op",9)])
         self.assertEqual(r["top_causes"][0]["kind"],"unattributed")
 
+    def test_gpu_user_annotation_copy_is_not_an_extra_step(self):
+        r=analyze([event("SKC_TRACE_STEP_11",0,1000,"user_annotation"),
+                   event("SKC_TRACE_STEP_11",100,800,"gpu_user_annotation",7),
+                   event("work",100,200,"kernel",7)])
+        self.assertEqual(r["active_steps"],1)
+        self.assertAlmostEqual(r["gpu_busy_ms_per_step"],0.2)
+
+    def test_duplicate_cpu_labels_are_rejected(self):
+        with self.assertRaises(ValueError):
+            analyze([event("SKC_TRACE_STEP_11",0,1000,"user_annotation"),
+                     event("SKC_TRACE_STEP_11",2000,1000,"user_annotation")])
+
+    def test_autograd_launch_thread_is_included(self):
+        r=analyze([event("SKC_TRACE_STEP_11",0,1000,"user_annotation"),
+                   event("run_backward",0,1000,"python_function"),
+                   event("BackwardFn",0,1000,"cpu_op",8),
+                   event("cudaLaunchKernel",400,100,"cuda_runtime",8)])
+        self.assertEqual(r["cpu_threads"],["8"])
+        totals={x["name"]:x["ms_per_step"] for x in r["top_causes"]}
+        self.assertAlmostEqual(totals["BackwardFn"],0.9)
+        self.assertAlmostEqual(totals["cudaLaunchKernel"],0.1)
+
 
 if __name__ == "__main__":
     unittest.main()

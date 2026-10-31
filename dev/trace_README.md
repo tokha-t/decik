@@ -18,9 +18,9 @@ The model still trains all 64 steps. Steps 11, 12 and 13 are captured with CPU +
 and `with_stack=True`. The raw Chrome trace is gzip-compressed after capture. Profiling and
 trace export affect this diagnostic's wall time; it is not a submission benchmark.
 
-The analyzer unions kernel, memcpy and memset intervals across GPU streams. It reports all
+Only CPU step labels are counted; GPU copies of those labels are excluded. The analyzer unions kernel, memcpy and memset intervals across GPU streams. It reports all
 idle time, and lists the requested gaps strictly greater than 0.2 ms within each traced step.
-It splits those gaps at CPU event boundaries on the training thread, choosing a CUDA runtime
+It splits those gaps at CPU event boundaries on the training and CUDA-launch threads, including the autograd worker, choosing a CUDA runtime
 event first, then the innermost CPU operation, then the innermost Python function. This gives
 one exclusive attribution per interval: totals sum to the selected GPU idle gaps. Python
 leaf callers and operation/caller pairs provide separate views of the same time; do not add

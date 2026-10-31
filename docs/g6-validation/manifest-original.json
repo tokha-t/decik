@@ -1,0 +1,35 @@
+{
+  "source_commit": "7ebed815c9cf3bbddc510474a6298b3254128802",
+  "frozen_solution": "5c1bbe560c08b0323eefeb843a0baf00e400e774",
+  "steps": [
+    11,
+    12,
+    13
+  ],
+  "client_date": "2026-10-31",
+  "client_timezone": "Asia/Almaty",
+  "versions": {
+    "torch": "2.11.0+cu128",
+    "triton": "3.6.0",
+    "soup-cli": "0.77.0",
+    "transformers": "5.16.1",
+    "peft": "0.20.0",
+    "trl": "0.29.1",
+    "bitsandbytes": "0.50.2",
+    "accelerate": "1.14.0"
+  },
+  "sha256": {
+    "no-stack/trace.json.gz": "0f7233dfd2692fc2a7c287bfde957618e1aa155c975d2a8b1115243d6f8b0b3a",
+    "no-stack/run.json": "6f8ba88600d88cacf7eb1300b96130e19ba05f5962de147b014e8e8cbe6cec3f",
+    "no-stack/analysis.log": "95dccbe285c4e5f741f20ecba44140791fa9e1875c88b23c8769be508b288fab",
+    "no-stack/train.log": "5cb85609d3b95f5336e8fc3ab38ca481d71031a5a95f34de437f4dba89aa99d9",
+    "no-stack/metrics.json": "7ef1718c0c3e6664b8c8109948d3bc195c4e7da4025c4f810621ebc2335d1616",
+    "no-stack/analysis.json": "b23bf20b3b9f904dd9eb8d2211c2ac025b2f8a7788fbc1ff5f396d70f57e773a",
+    "with-stack/trace.json.gz": "81d960b9abb83078b4ced1bdebfe188beae364992bd97487b1d5c6a31c16ad1e",
+    "with-stack/run.json": "c2731968449051b5956f45ef993d029b42dd65d964bdd3b64642d5b727e85bea",
+    "with-stack/analysis.log": "03eb9615f662ffcc2e771eea3955dfd7332b88936113033834aaf18ea8085ce9",
+    "with-stack/train.log": "111cdec8a9982020940e3e58aa50c3a29ac8a133d8a73ee9b851413bde3ff8a6",
+    "with-stack/metrics.json": "36c51b0127ca2a6f9ac1c2ab9afceab34377d697aed7134208bdc2d5a0ad2ba8",
+    "with-stack/analysis.json": "5afb6007c8b4468076d5f7221eea4d607b3ad24576b137f7115658210b8cda3b"
+  }
+}
