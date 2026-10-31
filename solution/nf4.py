@@ -11,6 +11,8 @@ It runs 2 x 7 x 28 = 392 times per training step, which is what keeps our kernel
 5% of the training time.
 """
 
+import os
+
 import torch
 import triton
 import triton.language as tl
@@ -18,7 +20,8 @@ import triton.language as tl
 from . import warmup
 from ._state import on_gpu
 
-BYTES_PER_PROGRAM = 1024  # 2048 weights per program
+BYTES_PER_PROGRAM = int(os.environ.get("SKC_NF4_BYTES", "1024"))  # bytes per program (2 weights each)
+NUM_WARPS = int(os.environ.get("SKC_NF4_WARPS", "4"))
 
 
 @triton.jit(do_not_specialize=["n_bytes"])
@@ -77,7 +80,7 @@ def dequantize_nf4(packed, quant_state):
     grid = (triton.cdiv(n_bytes, BYTES_PER_PROGRAM),)
     skc_nf4_dequant_kernel[grid](packed, absmax, absmax2, code2, offset, code, out, n_bytes,
                                  NESTED=bool(qs.nested), QBLOCK=int(qs.blocksize),
-                                 QBLOCK2=int(block2), BLOCK=BYTES_PER_PROGRAM, num_warps=4,
+                                 QBLOCK2=int(block2), BLOCK=BYTES_PER_PROGRAM, num_warps=NUM_WARPS,
                                  enable_fp_fusion=False)
     return out
 

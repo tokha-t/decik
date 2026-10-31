@@ -24,14 +24,15 @@ def _work():
         grid = (1,)
         # nf4 dequant (nested absmax, blocksize 64): as dequantize_nf4 launches it.
         nf4.skc_nf4_dequant_kernel.warmup(
-            torch.zeros(1024, dtype=torch.uint8, device=dev),
-            torch.zeros(32, dtype=torch.uint8, device=dev),
+            torch.zeros(nf4.BYTES_PER_PROGRAM, dtype=torch.uint8, device=dev),
+            torch.zeros(nf4.BYTES_PER_PROGRAM // 32 + 1, dtype=torch.uint8, device=dev),
             torch.zeros(1, dtype=torch.float32, device=dev),
             torch.zeros(256, dtype=torch.float32, device=dev),
             torch.zeros((), dtype=torch.float32, device=dev),
             torch.zeros(16, dtype=torch.float32, device=dev),
-            torch.empty(2048, dtype=torch.float16, device=dev),
-            1024, NESTED=True, QBLOCK=64, QBLOCK2=256, BLOCK=nf4.BYTES_PER_PROGRAM, num_warps=4,
+            torch.empty(2 * nf4.BYTES_PER_PROGRAM, dtype=torch.float16, device=dev),
+            nf4.BYTES_PER_PROGRAM, NESTED=True, QBLOCK=64, QBLOCK2=256, BLOCK=nf4.BYTES_PER_PROGRAM,
+            num_warps=nf4.NUM_WARPS,
             enable_fp_fusion=False, grid=grid)
         # RMSNorm over the 1536-wide fp32 residual stream with fp32 weights.
         n = 1536
