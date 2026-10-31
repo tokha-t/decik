@@ -25,11 +25,18 @@ from . import nf4, rmsnorm
 from ._state import STATE, on_gpu
 
 
+def _weight16(module):
+    return nf4.dequantize_nf4(module.weight.data, module.weight.quant_state)
+
+
+def _linear16_with(x16, weight16, module):
+    bias = module.bias
+    return torch.nn.functional.linear(x16, weight16, None if bias is None else bias.to(torch.float16))
+
+
 def _linear16(x16, module):
     """What bitsandbytes' Linear4bit computes for an fp16 input: dequantize + F.linear in fp16."""
-    weight = nf4.dequantize_nf4(module.weight.data, module.weight.quant_state)
-    bias = module.bias
-    return torch.nn.functional.linear(x16, weight, None if bias is None else bias.to(torch.float16))
+    return _linear16_with(x16, _weight16(module), module)
 
 
 def _swiglu_fwd(gate, up):
@@ -42,10 +49,10 @@ def _swiglu_fwd(gate, up):
     return out
 
 
-def _swiglu_bwd(grad, gate, up):
+def _swiglu_bwd(grad, gate, up, out=None):
     from . import swiglu
 
-    dgate, dup = torch.empty_like(gate), torch.empty_like(up)
+    dgate, dup = out if out is not None else (torch.empty_like(gate), torch.empty_like(up))
     n = gate.numel()
     swiglu.example_swiglu_bwd_kernel[(triton.cdiv(n, swiglu.BLOCK),)](grad, gate, up, dgate, dup,
                                                                      n, BLOCK=swiglu.BLOCK)
@@ -82,17 +89,20 @@ class RecomputedMLP(torch.autograd.Function):
             (x16,) = ctx.saved_tensors
         gate_proj, up_proj, down_proj = ctx.modules
         g16 = grad_out.to(torch.float16).contiguous()
-        w_down = nf4.dequantize_nf4(down_proj.weight.data, down_proj.weight.quant_state)
+        w_down = _weight16(down_proj)
         grad_hidden = torch.matmul(g16, w_down)
         del w_down
-        gate = _linear16(x16, gate_proj)
-        up = _linear16(x16, up_proj)
-        dgate, dup = _swiglu_bwd(grad_hidden.contiguous(), gate, up)
-        del gate, up, grad_hidden
-        w_gate = nf4.dequantize_nf4(gate_proj.weight.data, gate_proj.weight.quant_state)
+        # gate and up again; each weight is dequantized once for both of its matmuls
+        w_gate = _weight16(gate_proj)
+        gate = _linear16_with(x16, w_gate, gate_proj)
+        w_up = _weight16(up_proj)
+        up = _linear16_with(x16, w_up, up_proj)
+        # SwiGLU backward in place (it reads every element before writing it): dgate, dup
+        # take gate's and up's memory, so holding both weights costs no extra peak.
+        dgate, dup = _swiglu_bwd(grad_hidden.contiguous(), gate, up, out=(gate, up))
+        del grad_hidden, gate, up
         grad_x = torch.matmul(dgate, w_gate).to(ctx.in_dtype)
         del w_gate, dgate
-        w_up = nf4.dequantize_nf4(up_proj.weight.data, up_proj.weight.quant_state)
         # Two separate casts summed in fp32, as autograd adds the two input gradients in the base.
         grad_x = grad_x + torch.matmul(dup, w_up).to(ctx.in_dtype)
         return grad_x, None, None, None, None, None, None
