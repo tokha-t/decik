@@ -29,6 +29,15 @@ class Packing:
         self.n_tokens = int(index.numel())
         self._ones = {}
         self._scales = {}
+        self.max_len = max((length for _, length in spans), default=0)
+        self._cu = None
+
+    def cu_seqlens(self, device):
+        """Cumulative row offsets [rows + 1] (int32) for the varlen attention kernel."""
+        if self._cu is None or self._cu.device != device:
+            offsets = [start for start, _ in self.spans] + [self.n_tokens]
+            self._cu = torch.tensor(offsets, dtype=torch.int32).to(device, non_blocking=True)
+        return self._cu
 
     def dropout_draw(self, p, width, dtype, device):
         """What F.dropout draws for a [B, S, width] input, at the real tokens only: the scaled
@@ -112,6 +121,58 @@ class PackedSDPA(torch.autograd.Function):
         return dq, dk, dv, None, None, None
 
 
+def _expand_kv(t, groups):
+    """[1, HK, T, D] (any strides) -> [1, T, HK * groups, D] contiguous: query head h reads kv head
+    h // groups, as repeat_kv / repeat_interleave lay them out."""
+    _, n_kv, n_tok, dim = t.shape
+    t = t.transpose(1, 2)
+    if groups == 1:
+        return t.contiguous()
+    return t.unsqueeze(3).expand(1, n_tok, n_kv, groups, dim).reshape(1, n_tok, n_kv * groups, dim)
+
+
+class VarlenSDPA(torch.autograd.Function):
+    """Causal attention over all rows of the packed sequence in one kernel launch each way.
+
+    PyTorch's memory-efficient attention takes cumulative row offsets (cu_seqlens) and handles every
+    row of the packed sequence in one launch, iterating each row's own keys from its own start, which
+    is what per-row SDPA computes. Like PackedSDPA it keeps only q, k, v for backward and re-runs the
+    forward there; it replaces 4 forward, 4 recomputed-forward and 4 backward launches per layer (and
+    their Python, autograd and copy work) with one each."""
+
+    @staticmethod
+    def forward(ctx, query, key, value, cu_seqlens, max_len, groups, scale):
+        q = query.transpose(1, 2)
+        k, v = _expand_kv(key, groups), _expand_kv(value, groups)
+        out = torch.ops.aten._efficient_attention_forward(
+            q, k, v, None, cu_seqlens, cu_seqlens, max_len, max_len, 0.0, 1, False, scale=scale)[0]
+        ctx.save_for_backward(query, key, value, cu_seqlens)
+        ctx.max_len, ctx.groups, ctx.scale = max_len, groups, scale
+        return out
+
+    @staticmethod
+    def backward(ctx, grad_out):
+        query, key, value, cu = ctx.saved_tensors
+        groups, scale, max_len = ctx.groups, ctx.scale, ctx.max_len
+        q = query.transpose(1, 2)
+        k, v = _expand_kv(key, groups), _expand_kv(value, groups)
+        out, lse, seed, offset = torch.ops.aten._efficient_attention_forward(
+            q, k, v, None, cu, cu, max_len, max_len, 0.0, 1, True, scale=scale)[:4]
+        dq, dk, dv, _ = torch.ops.aten._efficient_attention_backward(
+            grad_out.contiguous(), q, k, v, None, out, cu, cu, max_len, max_len, lse, 0.0, seed,
+            offset, 1, False, scale=scale)
+        _, n_kv, n_tok, dim = key.shape
+        if groups > 1:  # repeat_kv's backward: sum each kv head's query heads
+            dk = dk.view(1, n_tok, n_kv, groups, dim).sum(3)
+            dv = dv.view(1, n_tok, n_kv, groups, dim).sum(3)
+        return dq.transpose(1, 2), dk.transpose(1, 2), dv.transpose(1, 2), None, None, None, None
+
+
+def _varlen_available():
+    ops = torch.ops.aten
+    return hasattr(ops, "_efficient_attention_forward") and hasattr(ops, "_efficient_attention_backward")
+
+
 class PackedDropout(torch.autograd.Function):
     """x * mask * scale with a given mask, saved as bool for backward like native dropout."""
 
@@ -165,7 +226,7 @@ def plan(model, input_ids, attention_mask, position_ids, past_key_values, inputs
     return Packing(index, positions, spans, batch, seq)
 
 
-def patch(recompute_attention=True, fuse_residual=True):
+def patch(recompute_attention=True, fuse_residual=True, varlen_attention=True):
     import torch.nn.functional as F
     from transformers.modeling_outputs import BaseModelOutputWithPast
     from transformers.modeling_utils import ALL_ATTENTION_FUNCTIONS
@@ -204,6 +265,7 @@ def patch(recompute_attention=True, fuse_residual=True):
     model_cls.forward = forward
 
     sdpa = ALL_ATTENTION_FUNCTIONS["sdpa"]
+    varlen_ok = [_varlen_available()]
 
     def sdpa_packed(module, query, key, value, attention_mask, dropout=0.0, scaling=None,
                     is_causal=None, **kwargs):
@@ -219,6 +281,12 @@ def patch(recompute_attention=True, fuse_residual=True):
                 and key.dtype == torch.float16 and value.dtype == torch.float16
                 and query.stride(-1) == 1 and key.stride(-1) == 1 and value.stride(-1) == 1):
             # fp16 q/k/v come from attn.py; SDPA would run on them as they are under autocast
+            if varlen_attention and query.is_cuda and varlen_ok[0]:
+                try:
+                    return VarlenSDPA.apply(query, key, value, packing.cu_seqlens(query.device),
+                                            packing.max_len, groups, scaling), None
+                except RuntimeError:  # this PyTorch/GPU cannot run it: per-row from now on
+                    varlen_ok[0] = False
             return PackedSDPA.apply(query, key, value, packing.spans, groups, scaling), None
         outputs = []
         for start, length in packing.spans:
