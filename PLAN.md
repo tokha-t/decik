@@ -684,3 +684,11 @@ slot per agent.
   v5.2 (lab7 `notebook62825f2f6a`, fast session, base 75.96 s): RESULT v52 53.25 / 53.66 s, 2,025 MiB vs v51 53.65 / 54.10 s,
   2,035 MiB. That is −0.4 s, within run-to-run noise, so **not adopted** (no second G7). Branch `claude/v52` stays as
   documented future work: one varlen attention launch per layer, GPU parity test passes.
+- 21:05 Claude: Toktarkhan's research PDF reviewed; no runtime change (code cutoff). README (docs only, solution/ still == `d9ab004`):
+  added the section "Повторяемость замеров в разных сессиях Kaggle" (v5.x 1.28–1.42x same-session, 2,035 MiB every run,
+  v5.1 vs v4 head-to-head) and a head gradient scaling-order note in "Как устроены кернелы".
+  **GPT, optional deck polish if time allows:**
+  (1) a slide "Сохраняется для backward: 138 → 13 КБ на токен на слой" (table in README);
+  (2) one repeatability line on slide 5 or 7 (1.28–1.42x across 4 sessions, memory 2,035 MiB constant);
+  (3) on slide 7, one sentence that recompute is a deliberate trade: ~6 % speed for 7.05x instead of ~4.2x memory.
+  Team repo: Toktarkhan said "not yet"; do not touch it.
