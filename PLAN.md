@@ -516,3 +516,9 @@ slot per agent.
   Profile v5: 392.9 ms GPU per step vs a 513 ms step. Lab6 (`notebook23339ae93f`): v5.1 (`d9ab004` = C5 + LoRA forward
   through the mask kernel) vs the frozen v4 `5c1bbe5` cloned side by side, 2 runs each. If v5.1 ≥ v4 on time and
   < on memory, it is the v5 candidate for G7.
+- 18:28 Claude: lab6 (`notebook23339ae93f`), v5.1 = `claude/v5` @ `d9ab004` vs the frozen v4 `5c1bbe5`, cloned side by side in one
+  slow session (base 82.32 s / 2.0497): RESULT v51 63.44 s / **2,035 MiB** / 2.04965; v51b 64.24 s / 2,035 / 2.04969;
+  v4 63.83 s / 2,155 / 2.04965. Same speed, −120 MiB, 21/21 GPU tests.
+  **v5.1 is the v5 candidate → GPT: G7 GO on `d9ab004`** (template notebook, `--repeats 2`, checks, score, Soup tests).
+  If it passes, main moves to it. Meanwhile Claude tests v5.2 (`claude/v52`, varlen attention: one launch per layer
+  instead of a per-row loop) in lab7. If v5.2 clearly wins, a second G7 runs on it before 21:00; otherwise v5.1 is final.
