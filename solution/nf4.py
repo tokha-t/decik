@@ -22,6 +22,7 @@ from ._state import on_gpu
 
 BYTES_PER_PROGRAM = int(os.environ.get("SKC_NF4_BYTES", "1024"))  # bytes per program (2 weights each)
 NUM_WARPS = int(os.environ.get("SKC_NF4_WARPS", "4"))
+USE_WORD_LOADS = os.environ.get("SKC_NF4_WORDS", "0") == "1"
 
 
 @triton.jit(do_not_specialize=["n_bytes"])
@@ -46,6 +47,39 @@ def skc_nf4_dequant_kernel(packed_ptr, absmax_ptr, absmax2_ptr, code2_ptr, offse
     pair = tl.interleave(high, low).to(tl.float16)
     outs = pid * (2 * BLOCK) + tl.arange(0, 2 * BLOCK)
     tl.store(out_ptr + outs, pair, mask=outs < 2 * n_bytes)
+
+
+@triton.jit(do_not_specialize=["n_bytes"])
+def skc_nf4_dequant_word_kernel(packed_ptr, absmax_ptr, absmax2_ptr, code2_ptr, offset_ptr,
+                               code_ptr, out_ptr, n_bytes, NESTED: tl.constexpr,
+                               QBLOCK: tl.constexpr, QBLOCK2: tl.constexpr,
+                               BLOCK: tl.constexpr):
+    """Load 32-bit words and decode each quantization scale once per quantization block.
+
+    Each word contains four little-endian packed bytes, or eight weights. Inside every
+    byte the high nibble is first, hence shifts 4, 0, 12, 8, 20, 16, 28, 24.
+    """
+    GROUPS: tl.constexpr = BLOCK * 2 // QBLOCK
+    WORDS_PER_GROUP: tl.constexpr = QBLOCK // 8
+    groups = tl.program_id(0).to(tl.int64) * GROUPS + tl.arange(0, GROUPS)
+    group_valid = groups * QBLOCK < n_bytes * 2
+    if NESTED:
+        q = tl.load(absmax_ptr + groups, mask=group_valid, other=0).to(tl.int32)
+        scale = tl.load(code2_ptr + q, mask=group_valid, other=0.0) * \
+            tl.load(absmax2_ptr + groups // QBLOCK2, mask=group_valid, other=0.0)
+        scale = scale + tl.load(offset_ptr)
+    else:
+        scale = tl.load(absmax_ptr + groups, mask=group_valid, other=0.0)
+    words = groups[:, None] * WORDS_PER_GROUP + tl.arange(0, WORDS_PER_GROUP)[None, :]
+    word_valid = words * 4 < n_bytes
+    packed = tl.load(packed_ptr + words, mask=word_valid, other=0).to(tl.uint32)
+    positions = tl.arange(0, 8)
+    shifts = (positions ^ 1) * 4
+    nibble = (packed[:, :, None] >> shifts[None, None, :]) & 15
+    values = tl.load(code_ptr + nibble, mask=word_valid[:, :, None], other=0.0)
+    decoded = values * scale[:, None, None]
+    offsets = words[:, :, None] * 8 + positions[None, None, :]
+    tl.store(out_ptr + offsets, decoded.to(tl.float16), mask=offsets < n_bytes * 2)
 
 
 def supported(quant_state, n_in=None):
@@ -78,7 +112,11 @@ def dequantize_nf4(packed, quant_state):
         absmax = absmax2 = code2 = offset = qs.absmax
         block2 = 256
     grid = (triton.cdiv(n_bytes, BYTES_PER_PROGRAM),)
-    skc_nf4_dequant_kernel[grid](packed, absmax, absmax2, code2, offset, code, out, n_bytes,
+    word_path = (USE_WORD_LOADS and packed.is_contiguous() and n_bytes % 4 == 0
+                 and qs.blocksize % 8 == 0 and (2 * BYTES_PER_PROGRAM) % qs.blocksize == 0)
+    kernel = skc_nf4_dequant_word_kernel if word_path else skc_nf4_dequant_kernel
+    storage = packed.reshape(-1)[:n_bytes].view(torch.int32) if word_path else packed
+    kernel[grid](storage, absmax, absmax2, code2, offset, code, out, n_bytes,
                                  NESTED=bool(qs.nested), QBLOCK=int(qs.blocksize),
                                  QBLOCK2=int(block2), BLOCK=BYTES_PER_PROGRAM, num_warps=NUM_WARPS,
                                  enable_fp_fusion=False)
