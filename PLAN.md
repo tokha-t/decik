@@ -319,10 +319,10 @@ Technical limits, for README "Ограничения" (GPT's section; use what f
 | C3 | MLP recompute variants, default | Claude | done | main | recompute ON by default; x16 from norm, dequant reuse |
 | C4 | integration, freeze | Claude | done | main | **code frozen 19:10**; solution/ = lab4-tested `afd85c3` |
 | G1 | teammate's solution numbers | GPT | done | f55b1ef (team source) | Fresh T4: s=1.0658, m=1.7920, own=0.9%, 9/10; check4 fails |
-| G2 | faster NF4 dequant | GPT | final A/B running | stable 73ad7f7 | Word and LUT rejected after parity/perf; full 1024/4096 comparison pending, release unchanged |
+| G2 | faster NF4 dequant | GPT | done; original retained | 73ad7f7 / A-B | Both settings 10/10; 1024 faster than 4096 end-to-end; word/LUT not merged |
 | G3 | SUBMISSION, slides, video script, README results | GPT | draft ready | gpt/docs | Editable 7-slide deck + PDF, 2:55 script, checkpoint README; team info/final figures pending |
-| G4 | final measured run, public notebook | GPT | prepared | frozen 5c1bbe5 | Strict kaggle_gpt_final.ipynb ready; start when the current GPT GPU A/B finishes |
-| G5 | cold start (optional) | GPT | todo | gpt/warmup | |
+| G4 | final measured run, public notebook | GPT | running | frozen 5c1bbe5 | Public qostbillions-final-validation v1; exact SHA and public visibility verified |
+| G5 | cold start (optional) | GPT | deferred | — | Release frozen; prioritize final validation and evidence |
 
 ## 10. Log (append only, newest last)
 
@@ -444,3 +444,15 @@ Technical limits, for README "Ограничения" (GPT's section; use what f
   https://www.kaggle.com/code/toktarkhan/gpt-nf4-lab, one complete two-repeat harness measurement
   at each 1024/4 and 4096/4, with tests/checks/score and same-session bases. This is exploratory
   measurement only; it does not change the frozen release.
+
+- 16:57 GPT: G2 complete; preserve the original NF4 default. Full A/B at `73ad7f7`:
+  RESULT {"tag":"g2_1024","block":1024,"warps":4,"recompute":0,"base_wall_s":85.77,"wall_s":57.16,"peak_mib":4307,"speedup":1.5005,"memory_ratio":3.3306,"eval_base":2.04965,"eval_solution":2.04965,"checks":"10/10","repeats":2}
+  RESULT {"tag":"g2_4096","block":4096,"warps":4,"recompute":0,"base_wall_s":88.25,"wall_s":59.70,"peak_mib":4307,"speedup":1.4782,"memory_ratio":3.3306,"eval_base":2.04967,"eval_solution":2.04969,"checks":"10/10","repeats":2}
+  The 4096 setting's small component gain did not transfer: NF4 GPU time about3.47 vs3.01s, loop34.30
+  vs33.52s. Downloaded both results/checks and verified result and exact73ad7f7 source hashes. Report:
+  `docs/nf4-experiments.md`. No experimental runtime code merged or frozen code changed.
+- 16:57 GPT: G4 started on frozen `5c1bbe560c08b0323eefeb843a0baf00e400e774`, defaults only.
+  Public saved notebook: https://www.kaggle.com/code/toktarkhan/qostbillions-final-validation version1.
+  Kaggle canonicalized the requested slug from the final title; this is GPT's sole GPU job. Metadata
+  confirms is_private=false, T4 and internet on; the source COMMIT cell is exactly the frozen SHA.
+  Waiting for GPU/Soup tests, two base/solution runs, checker, score and evidence export.
