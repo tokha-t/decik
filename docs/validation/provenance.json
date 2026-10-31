@@ -1,0 +1,11 @@
+{
+  "notebook_url": "https://www.kaggle.com/code/toktarkhan/qostbillions-final-validation?scriptVersionId=364217337",
+  "saved_version_id": 364217337,
+  "saved_version_number": 1,
+  "is_private": false,
+  "frozen_implementation_commit": "5c1bbe560c08b0323eefeb843a0baf00e400e774",
+  "result_sha256": "7434230cff6fa598cada142143d6ded954a4c328531df6c2c5e89d3d030265f5",
+  "solution_sha256": "d6ef76a142b4ffbbaaad584201fd25469136f15c69ca37106b062b2c9283e6ab",
+  "hash_verification": "Downloaded result bytes and sorted relative filenames plus Git blob contents in solution/ at the frozen commit.",
+  "date_note": "Kaggle metadata timestamps differ from the client clock; the manifest records the client date and timezone. Identity is pinned by saved-version ID, Git SHA and hashes."
+}

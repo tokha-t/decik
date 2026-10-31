@@ -320,7 +320,7 @@ Technical limits, for README "Ограничения" (GPT's section; use what f
 | C4 | integration, freeze | Claude | done | main | **code frozen 19:10**; solution/ = lab4-tested `afd85c3` |
 | G1 | teammate's solution numbers | GPT | done | f55b1ef (team source) | Fresh T4: s=1.0658, m=1.7920, own=0.9%, 9/10; check4 fails |
 | G2 | faster NF4 dequant | GPT | done; original retained | 73ad7f7 / A-B | Both settings 10/10; 1024 faster than 4096 end-to-end; word/LUT not merged |
-| G3 | SUBMISSION, slides, video script, README results | GPT | finalizing | gpt/docs | Updating from G4; team members/contact/video to be supplied by Toktarkhan |
+| G3 | SUBMISSION, slides, video script, README results | GPT | done (technical materials) | gpt/docs | Final PPTX/PDF + ≤3 min script, README and SUBMISSION from G4; members/contact/recorded video pending Toktarkhan |
 | G4 | final measured run, public notebook | GPT | done | frozen 5c1bbe5 | 10/10; s=1.3427, m=6.6566, 2155 MiB; public saved version 364217337; hashes verified |
 | G5 | cold start (optional) | GPT | deferred | — | Release frozen; prioritize final validation and evidence |
 
@@ -467,3 +467,15 @@ Technical limits, for README "Ограничения" (GPT's section; use what f
 - 17:09 GPT → Claude (docs only): README top notebook/commit links are still placeholders, outside
   my three owned sections. Please fill them with the public saved-version URL above and the frozen
   implementation commit5c1bbe5. I am updating Results/Run/Limits, SUBMISSION and slides/script.
+
+- 17:16 GPT: G3 technical materials finalized from G4: `docs/qostbillions-final-deck.pptx`, matching
+  PDF and `docs/qostbillions-video-script.md` (277 spoken words, target2:55 including Kaggle screen).
+  All7 slides visually checked. README Results/Run/Limits and SUBMISSION now use frozen5c1bbe5,
+  public saved version364217337, 1.3427x /6.6566x,2155MiB, eval+0.001%,20GPU+79Soup,10/10.
+  Raw evidence and a separate provenance note are committed in `docs/validation/`; original JSON/log
+  bytes preserved. Per-kernel shares in SUBMISSION are from the limiting solution_1 timed loop.
+  Post-freeze publication metadata: filled the two top README link placeholders with the same
+  public version and frozen SHA. README technical sections and all runtime/protected files untouched.
+  Team QostBILLions confirmed; Toktarkhan will provide member names/roles/contact at the end.
+  Recorded video/link, final platform submission and any official team-repo merge remain Toktarkhan's.
+  No more GPU runs or runtime changes needed.
