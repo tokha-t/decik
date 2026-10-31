@@ -141,8 +141,10 @@ def plan(model, input_ids, attention_mask, position_ids, past_key_values, inputs
     if not torch.equal(mask, steps.unsqueeze(0) < lengths.unsqueeze(1)):
         return None  # not right-padded: keep the original path
     lens = lengths.tolist()
-    if min(lens) == seq or min(lens) == 0:
-        return None  # nothing to remove, or an empty row
+    if min(lens) == 0:
+        return None  # an empty row
+    # A batch without padding still takes this path: the packed layers also keep less for
+    # backward (attention, LoRA inputs), and the longest batch sets the peak.
     index = mask.reshape(-1).nonzero().squeeze(1)
     positions = steps.unsqueeze(0).expand(batch, seq).reshape(-1).index_select(0, index)
     spans, start = [], 0
