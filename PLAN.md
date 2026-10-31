@@ -340,6 +340,7 @@ slot per agent.
 | G4 | final measured run, public notebook | GPT | done | frozen 5c1bbe5 | 10/10; s=1.3427, m=6.6566, 2155 MiB; public saved version 364217337; hashes verified |
 | G5 | cold start subprocess experiment | GPT | done; original thread retained | gpt/warmup dfe0ad6 | Hash-verified GPU A/B: one nominal −0.630s vs1.47s baseline drift; two +0.885s; exact eval gate unmet; no adoption |
 | G6 | GPU idle trace and attribution | GPT | done | gpt/trace-complete | Steps11–13 traced; corrected CPU labels/autograd attribution; docs/g6-idle-diagnosis.md |
+| G7 | Full v5.1 public validation | GPT | preparing; retrying Kaggle access | gpt/g7 / d9ab004 | Pin authorized candidate;21GPU/79Soup,2repeats,10checks and exact hashes; v4 retained until success |
 
 ## 10. Log (append only, newest last)
 
@@ -600,3 +601,10 @@ slot per agent.
 +  not be rechecked. G7 for Claude's d9ab004 is still a separate uncompleted full validation;
 +  no v5 adoption or claim without it before21:00.
 +
+- 19:30 GPT: user requested retry Kaggle and continue G7 following latest PLAN. Latest explicit GO
+  remains v5.1 d9ab00419faa5d81ddf48fb35ec562284e5d62f9, not v5.2. Preparing separate public
+  kaggle_gpt_v51_final.ipynb with G4 protocol,21GPU/79Soup,2repeats,10checks,score and source
+  hash bdf21a6adb90887482ad0facaa421dc0173e8ae075d8ba4678c4166d91fcaa42.
+  No rejected G5 overlay; protected kit unchanged. Account actions still Unauthenticated after
+  reported reconnect; public metadata reads work. Checking browser fallback while notebook is prepared.
+  No G7 run has been submitted yet; v4 results and runtime remain unchanged.
