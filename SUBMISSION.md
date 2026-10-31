@@ -2,15 +2,16 @@
 
 ## Links
 
-- Repository: [tokha-t/decik](https://github.com/tokha-t/decik).
-- Measured v5.2 implementation (final): [`8414ab48cdc23c2ddb509f5418f41c2457d40811`](https://github.com/tokha-t/decik/commit/8414ab48cdc23c2ddb509f5418f41c2457d40811).
-- [Final validation notebook, saved version 364288750](https://www.kaggle.com/code/toktarkhan/notebook72649ae047?scriptVersionId=364288750); `COMMIT` is the SHA above.
-- Previous v5.1: [`d9ab004`](https://github.com/tokha-t/decik/commit/d9ab00419faa5d81ddf48fb35ec562284e5d62f9), [public G7 notebook, saved version 364261503](https://www.kaggle.com/code/toktarkhan/gpt-v51-final-validation?scriptVersionId=364261503).
-- Presentation: [editable PPTX](docs/qostbillions-v52-final-deck.pptx), [PDF](docs/qostbillions-v52-final-deck.pdf).
-- [Video narration, target 2:55](docs/qostbillions-v52-video-script.md).
-- Demo video, up to 3 minutes: **pending recording and link from the team**.
-- [Final validation evidence (v5.2)](docs/validation-v52/README.md); [G7 / v5.1 evidence](docs/validation/README.md).
-- Previous validated v4: [saved G4 run](https://www.kaggle.com/code/toktarkhan/qostbillions-final-validation?scriptVersionId=364217337), [preserved evidence](docs/validation-v4/README.md).
+- Repository, final commit: [https://github.com/tokha-t/decik/commit/8414ab48cdc23c2ddb509f5418f41c2457d40811](https://github.com/tokha-t/decik/commit/8414ab48cdc23c2ddb509f5418f41c2457d40811) (v5.2, `8414ab48cdc23c2ddb509f5418f41c2457d40811`).
+- Public Kaggle notebook, the saved version (`COMMIT` in it = the sha above; the same link is in README):
+  [https://www.kaggle.com/code/toktarkhan/notebook72649ae047?scriptVersionId=364288750](https://www.kaggle.com/code/toktarkhan/notebook72649ae047?scriptVersionId=364288750).
+- Demo video (up to 3 minutes): **pending — link from the team**.
+- Presentation: [editable PPTX](docs/qostbillions-v52-final-deck.pptx), [PDF](docs/qostbillions-v52-final-deck.pdf);
+  [video narration](docs/qostbillions-v52-video-script.md).
+- Evidence: [final v5.2](docs/validation-v52/README.md); earlier [G7 / v5.1](docs/validation/README.md)
+  ([saved run 364261503](https://www.kaggle.com/code/toktarkhan/gpt-v51-final-validation?scriptVersionId=364261503), `d9ab004`)
+  and [G4 / v4](docs/validation-v4/README.md)
+  ([saved run 364217337](https://www.kaggle.com/code/toktarkhan/qostbillions-final-validation?scriptVersionId=364217337)).
 
 Runtime identity is pinned to the measured implementation; publication/documentation commits are separate.
 

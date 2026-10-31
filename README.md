@@ -4,7 +4,7 @@
 пиком памяти. Всё подключается одной функцией `solution.apply()`; задача, данные, батчи, LoRA,
 оптимизатор и выходы Soup не меняются.
 
-- **Kaggle-ноутбук (сохранённая версия):** [финальная проверка v5.2, версия 364288750](https://www.kaggle.com/code/toktarkhan/notebook72649ae047?scriptVersionId=364288750)
+- **Публичный Kaggle-ноутбук (сохранённая версия):** [финальная проверка v5.2, версия 364288750](https://www.kaggle.com/code/toktarkhan/notebook72649ae047?scriptVersionId=364288750)
 - **Финальный коммит:** [`8414ab4`](https://github.com/tokha-t/decik/commit/8414ab48cdc23c2ddb509f5418f41c2457d40811)
 
 ## Результаты (Kaggle T4, `harness/run_task.py`, публичные строки)
@@ -200,32 +200,63 @@ fp16-выход attention (3 КиБ); общий residual повторно не 
   https://huggingface.co/blog/packing-with-FA2
 - Triton tutorials (layer norm, fused softmax): https://triton-lang.org/main/getting-started/tutorials/
 
-## Как запустить
+## Установка, настройка и запуск
+
+### Требования
+
+- GPU NVIDIA T4 (sm75). Проверено в Kaggle, окружение «GPU T4 x2»; обучение использует одну карту.
+- Проверенное окружение (образ Kaggle): Python 3.13, PyTorch 2.11.0+cu128, Triton 3.6.0.
+- Пакеты обучения закреплены: `soup-cli[train]==0.77.0`, `transformers==5.16.1`, `peft==0.20.0`, `trl==0.29.1`,
+  `bitsandbytes==0.50.2`, `accelerate==1.14.0`; для тестов — `pytest`.
+- Интернет при первом запуске: модель Qwen2.5-1.5B-Instruct с Hugging Face и данные задачи.
+- Своих зависимостей у решения нет: только PyTorch и Triton из окружения, готовые библиотеки кернелов не импортируются.
+
+### Установка
+
+```bash
+git clone https://github.com/tokha-t/decik.git && cd decik
+git checkout 8414ab48cdc23c2ddb509f5418f41c2457d40811     # измеренная версия v5.2
+pip install "soup-cli[train]==0.77.0" "transformers==5.16.1" "peft==0.20.0" "trl==0.29.1" \
+            "bitsandbytes==0.50.2" "accelerate==1.14.0" pytest
+python task/prepare_data.py                               # 256 обучающих и 256 eval-строк в data/
+```
+
+### Настройка
+
+- Настраивать ничего не нужно. Harness сам вызывает `solution.apply()` до того, как Soup строит модель и
+  тренер (`harness/_train.py`, запуск решения); регрессионные тесты Soup включают патч через `SOUP_APPLY_SOLUTION=1`.
+  В своём коде: `import solution; solution.apply()` в том же процессе до запуска обучения Soup.
+- Аллокатор (`expandable_segments:True`) задаёт harness; решение его не меняет.
+- Финальные цифры получены с настройками по умолчанию, без переменных `SKC_`. Для A/B любую часть можно
+  выключить: `SKC_NF4`, `SKC_RMSNORM`, `SKC_MLP`, `SKC_EMBED`, `SKC_HEAD`, `SKC_VARLEN`, `SKC_ATTN`,
+  `SKC_ATTN_RECOMPUTE`, `SKC_LORA_RECOMPUTE`, `SKC_ADDNORM`, `SKC_VARLEN_ATTN`, `SKC_WARMUP` = `0`.
+  `SKC_RECOMPUTE=0` хранит gate/up вместо пересчёта; `SKC_NF4_BYTES` / `SKC_NF4_WARPS` меняют запуск NF4.
+  Каждый вариант требует своего полного замера.
+
+### Запуск и проверка
+
+```bash
+python -m pytest solution -q                      # 22 GPU-теста решения: выходы и градиенты
+SOUP_APPLY_SOLUTION=1 python -m pytest tests -q   # 79 регрессионных тестов Soup с нашим патчем
+python harness/run_task.py --repeats 2            # база и решение: base, solution, solution, base -> runs/result.json
+python harness/check_rules.py                     # 10 проверок допуска -> runs/checks.json
+python harness/score.py runs/result.json          # итог по формуле задачи
+```
+
+Быстрый прогон только решения: `python harness/run_task.py --only solution --out runs_try` (для допуска нужен
+и замер базы). `--profile` добавляет отдельный профиль CUDA-кернелов.
+
+### Повторить на Kaggle, как в финальной проверке
 
 1. Открыть [сохранённую версию финальной проверки v5.2](https://www.kaggle.com/code/toktarkhan/notebook72649ae047?scriptVersionId=364288750) и её результаты.
    Для повторения импортировать `kaggle_claude_v52_final.ipynb`; Accelerator **GPU T4 x2**, Internet **on**.
-2. Ноутбук фиксирует `COMMIT="8414ab48cdc23c2ddb509f5418f41c2457d40811"`. Использовать настройки по умолчанию,
-   без переменных `SKC_`; эксперимент G5 с subprocess-компиляцией не включён.
-   Пакеты обучения закреплены; проверяются PyTorch 2.11.0 и Triton 3.6.0.
-   Полное окружение записано в [manifest.json](docs/validation-v52/manifest.json).
-3. Выполнить все ячейки. Проверяются исходный Git SHA, хеш `solution/` и неизменность официальных
-   файлов. После подготовки данных: `python -m pytest solution -q` и
-   `SOUP_APPLY_SOLUTION=1 python -m pytest tests -q`; выполнение останавливается при ошибке.
-4. Полный замер: `python harness/run_task.py --repeats 2`, затем
-   `python harness/check_rules.py` и `python harness/score.py runs/result.json`.
-   Это официальный протокол шаблона `kaggle_run.ipynb`; harness не изменён.
-5. Сохранить версию с выходами. Ноутбук экспортирует `v52-evidence/` и `v52-evidence.zip`:
-   `result.json`, `checks.json`, `manifest.json` и логи. Проверить все десять правил, SHA,
-   хеш результата и хеш `solution/`. Доказательства финального прогона — в `docs/validation-v52/` (v5.1 — `docs/validation/`).
-
-Для быстрых экспериментов: `python harness/run_task.py --only solution --out runs_try`.
-Полный допуск требует замера базы. `--profile` создаёт отдельный диагностический профиль GPU.
-
-Для A/B любую часть можно выключить: `SKC_NF4`, `SKC_RMSNORM`, `SKC_MLP`, `SKC_EMBED`,
-`SKC_HEAD`, `SKC_VARLEN`, `SKC_ATTN`, `SKC_ATTN_RECOMPUTE`, `SKC_LORA_RECOMPUTE`,
-`SKC_ADDNORM`, `SKC_VARLEN_ATTN`, `SKC_WARMUP` = `0`. `SKC_RECOMPUTE=0` хранит gate/up вместо пересчёта;
-`SKC_NF4_BYTES` / `SKC_NF4_WARPS` меняют запуск NF4. Каждый вариант требует своего полного замера;
-опубликованные финальные цифры относятся только к настройкам по умолчанию.
+2. Ноутбук фиксирует `COMMIT="8414ab48cdc23c2ddb509f5418f41c2457d40811"` и проверяет, что SHA, хеш `solution/`
+   и официальные файлы (`harness/`, `tests/`, `task/`, `templates/`) не изменены. Окружение записано в
+   [manifest.json](docs/validation-v52/manifest.json).
+3. «Save Version» → «Save & Run All». Ноутбук ставит закреплённые пакеты, готовит данные, запускает оба набора
+   тестов, `run_task.py --repeats 2`, `check_rules.py` и `score.py` и останавливается при любой ошибке.
+4. В выходах — `v52-evidence/` и `v52-evidence.zip`: `result.json`, `checks.json`, `manifest.json` и логи.
+   Копия доказательств финального прогона — в `docs/validation-v52/` (v5.1 — `docs/validation/`).
 
 ## Ограничения и что дальше
 

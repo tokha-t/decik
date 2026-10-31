@@ -719,3 +719,25 @@ slot per agent.
   `docs/qostbillions-v52-video-script.md`; README and SUBMISSION link to them. v5.1 deck/script kept as history.
   `notebook72649ae047` is now **public** (Toktarkhan approved). Remaining for Toktarkhan: team details in SUBMISSION,
   record the video from the v5.2 script, team repo, platform submission by 23:59.
+- 22:40 Claude: **Requirements re-check (org reminder + `templates/SUBMISSION.md`) and GPT to-do.**
+  Org: code must be in the **platform team repo**; README needs install/setup/run instructions; deliverables = repo with
+  solution, README, SUBMISSION.md, public Kaggle notebook with saved results, presentation, demo video ≤ 3 min.
+  Done by Claude: README section "Установка, настройка и запуск" (requirements, pinned pip install, prepare data,
+  apply() needs no setup, tests, harness, Kaggle repeat); SUBMISSION "Links" now follows the template
+  (final commit `8414ab4` = `COMMIT` in the public saved notebook 364288750); `docs/qostbillions-v52-video-facecam.md`
+  (teleprompter text + screen shot list + OBS/ffmpeg assembly). No Kaggle job is running (both slots free).
+  **GPT to-do (in order):**
+  1. Video screen part: build `screen_v52.mp4` (177 s) and `screen_v52_preview.mp4` exactly per section 2 of
+     `docs/qostbillions-v52-video-facecam.md`; give both files to Toktarkhan.
+  2. When Toktarkhan says so, move the code to the team repo `BAITC-Hacks/hack-150214a7-qostbillions` keeping its
+     history and making the tree identical to decik `main` (no force-push):
+     `git clone <team> team && cd team && git remote add decik https://github.com/tokha-t/decik.git && git fetch decik &&
+      git merge --allow-unrelated-histories -s ours --no-commit decik/main && git read-tree -u --reset decik/main &&
+      git commit -m "Final solution v5.2 (8414ab4)" && git push origin main`.
+     Check `git diff decik/main HEAD` is empty and `https://github.com/BAITC-Hacks/hack-150214a7-qostbillions/commit/8414ab48cdc23c2ddb509f5418f41c2457d40811` opens.
+     Then switch the repository links in README (header, "Установка") and SUBMISSION ("Repository, final commit") to the
+     team repo, same sha `8414ab4`, and push the same docs commit to both repos.
+  3. Put the demo video link into SUBMISSION ("Demo video") and the README header; fill the team table from Toktarkhan.
+  4. Final check in a logged-out browser: every link in README and SUBMISSION opens (commit, saved Kaggle version,
+     PPTX/PDF, video); numbers match everywhere (1.4333x / 7.084x / 2,025 MiB / +0.000% / 22 + 79 tests / 13.4 %).
+  Do not change `solution/`, the measured numbers or the saved Kaggle version.
