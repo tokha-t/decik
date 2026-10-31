@@ -104,7 +104,7 @@ def test_lora_pair_from_norm_matches_peft_ops():
     """q/v LoRA with the input rebuilt from the norm's input vs peft's ops under fp16 autocast."""
     import torch.nn.functional as F
 
-    from solution.attn import LoRAPairFromNorm
+    from solution.attn import LoRAPairFromNorm, pack_keep
     from solution.rmsnorm import RMSNormFn
 
     torch.manual_seed(0)
@@ -130,8 +130,9 @@ def test_lora_pair_from_norm_matches_peft_ops():
         p.grad = None
     with torch.autocast("cuda", dtype=torch.float16):
         x = RMSNormFn.apply(h, w, 1e-6)
-        ours = LoRAPairFromNorm.apply(x, h, w, 1e-6, sq, kq, sq.amax(), sv, kv, sv.amax(),
-                                      a_q, b_q, a_v, b_v, 2.0, 2.0, 0.05, 0.05)
+        bits_q, bits_v = pack_keep(kq.reshape(n, hidden), kv.reshape(n, hidden))
+        ours = LoRAPairFromNorm.apply(x, h, w, 1e-6, sq, bits_q, sq.amax(), sv, bits_v, sv.amax(),
+                                      a_q, b_q, a_v, b_v, 2.0, 2.0, 0.05, 0.05, True)
     torch.autograd.backward(list(ours), [gq, gv])
     for a, b in zip(ours, ref):
         assert torch.equal(a, b)

@@ -62,29 +62,40 @@ torch.autograd.backward(outs, [gq, gv])
 ref_out = [o.detach() for o in outs]
 ref_grads = grads(h, a_q, b_q, a_v, b_v)
 
-# ours
-x = rmsnorm.RMSNormFn.apply(h, w, eps)
-scale = scaled_q.amax()
-saved = []
-with torch.autograd.graph.saved_tensors_hooks(lambda t: saved.append(t) or t, lambda t: t):
-    oq, ov = attn.LoRAPairFromNorm.apply(x, h, w, eps, scaled_q, keep_q, scale, scaled_v, keep_v,
-                                         scale, a_q, b_q, a_v, b_v, scaling, scaling, p, p)
-torch.autograd.backward([oq, ov], [gq, gv])
-our_grads = grads(h, a_q, b_q, a_v, b_v)
-
-check("q delta bit-exact", torch.equal(oq.detach(), ref_out[0]))
-check("v delta bit-exact", torch.equal(ov.detach(), ref_out[1]))
-for name, ours, ref in zip(("h", "A_q", "B_q", "A_v", "B_v"), our_grads, ref_grads):
-    same = torch.equal(ours, ref)
-    rel = ((ours - ref).abs().max() / ref.abs().max()).item()
-    # h's gradient sums the q and v branches in another order than autograd: fp32 rounding only
-    ok = same if name != "h" else rel < 1e-6
-    check(f"grad {name}" + (" bit-exact" if name != "h" else " (fp32 rounding)"), ok,
-          f"max rel {rel:.2e}")
-big = [t for t in saved if t.dtype == torch.float16 and t.numel() >= T * H]
-check("keeps no [T x H] fp16 input", not big, f"{len(saved)} saved, big fp16: {[tuple(t.shape) for t in big]}")
-check("keeps the norm's own input (same storage)",
-      any(t.untyped_storage().data_ptr() == h.untyped_storage().data_ptr() for t in saved))
+# ours: masks as bool views (packed=False) and bit-packed by our kernel (packed=True)
+for packed in (False, True):
+    x = rmsnorm.RMSNormFn.apply(h, w, eps)
+    scale = scaled_q.amax()
+    if packed:
+        mq, mv = attn.pack_keep(keep_q.reshape(T, H).contiguous(), keep_v.reshape(T, H).contiguous())
+        check("packed mask bytes", mq.shape == (T, H // 8) and mq.dtype == torch.uint8)
+        unpacked = ((mq.to(torch.int32).unsqueeze(-1) >> torch.arange(8)) & 1).reshape(T, H).bool()
+        check("pack -> unpack round trip", torch.equal(unpacked, keep_q.reshape(T, H)))
+    else:
+        mq, mv = keep_q, keep_v
+    saved = []
+    with torch.autograd.graph.saved_tensors_hooks(lambda t: saved.append(t) or t, lambda t: t):
+        oq, ov = attn.LoRAPairFromNorm.apply(x, h, w, eps, scaled_q, mq, scale, scaled_v, mv,
+                                             scale, a_q, b_q, a_v, b_v, scaling, scaling, p, p,
+                                             packed)
+    torch.autograd.backward([oq, ov], [gq, gv])
+    our_grads = grads(h, a_q, b_q, a_v, b_v)
+    tag = "packed" if packed else "bool masks"
+    check(f"[{tag}] q delta bit-exact", torch.equal(oq.detach(), ref_out[0]))
+    check(f"[{tag}] v delta bit-exact", torch.equal(ov.detach(), ref_out[1]))
+    for name, ours, ref in zip(("h", "A_q", "B_q", "A_v", "B_v"), our_grads, ref_grads):
+        same = torch.equal(ours, ref)
+        rel = ((ours - ref).abs().max() / ref.abs().max()).item()
+        # h's gradient sums the q and v branches in another order than autograd: fp32 rounding
+        ok = same if name != "h" else rel < 1e-6
+        check(f"[{tag}] grad {name}" + (" bit-exact" if name != "h" else " (fp32 rounding)"), ok,
+              f"max rel {rel:.2e}")
+    big = [t for t in saved if t.dtype in (torch.float16, torch.bool) and t.numel() >= T * H]
+    check(f"[{tag}] keeps no [T x H] fp16 input" + (" and no byte masks" if packed else ""),
+          not [t for t in big if t.dtype == torch.float16] and (not packed or not big),
+          f"{len(saved)} saved: {[(tuple(t.shape), str(t.dtype)) for t in big]}")
+    check(f"[{tag}] keeps the norm's own input (same storage)",
+          any(t.untyped_storage().data_ptr() == h.untyped_storage().data_ptr() for t in saved))
 
 # RecomputedMLP with and without the norm link
 import bitsandbytes as bnb  # noqa: E402

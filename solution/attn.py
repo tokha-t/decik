@@ -126,56 +126,141 @@ class FusedQKRope(torch.autograd.Function):
         return dq, dq.clone(), dk, None, None, None, None
 
 
+@triton.jit(do_not_specialize=["n_rows"])
+def skc_keep_pack_kernel(keep_q_ptr, keep_v_ptr, bits_q_ptr, bits_v_ptr, n_rows,
+                         WIDTH: tl.constexpr, BYTES: tl.constexpr):
+    """The q and v dropout keep-masks (one byte 0/1 per element) packed into bits, 8 per byte."""
+    row = tl.program_id(0).to(tl.int64)
+    byte = tl.arange(0, BYTES)
+    valid = byte < WIDTH // 8
+    src = row * WIDTH + byte * 8
+    acc_q = tl.zeros([BYTES], dtype=tl.int32)
+    acc_v = tl.zeros([BYTES], dtype=tl.int32)
+    for j in tl.static_range(8):
+        acc_q = acc_q | (tl.load(keep_q_ptr + src + j, mask=valid, other=0).to(tl.int32) << j)
+        acc_v = acc_v | (tl.load(keep_v_ptr + src + j, mask=valid, other=0).to(tl.int32) << j)
+    dst = row * (WIDTH // 8) + byte
+    tl.store(bits_q_ptr + dst, acc_q.to(tl.uint8), mask=valid)
+    tl.store(bits_v_ptr + dst, acc_v.to(tl.uint8), mask=valid)
+
+
+@triton.jit
+def _keep(bits_ptr, row, cols, valid, WIDTH: tl.constexpr):
+    byte = tl.load(bits_ptr + row * (WIDTH // 8) + cols // 8, mask=valid, other=0).to(tl.int32)
+    return ((byte >> (cols % 8)) & 1).to(tl.float32)
+
+
+@triton.jit(do_not_specialize=["n_rows"])
+def skc_lora_inputs_kernel(x_ptr, bits_q_ptr, bits_v_ptr, scale_q_ptr, scale_v_ptr, xq_ptr, xv_ptr,
+                           n_rows, WIDTH: tl.constexpr, BLOCK: tl.constexpr):
+    """fp16(x * dropout values) of the q and v LoRA branches, from x and the packed keep-masks:
+    x * (keep * scale) in fp32, then rounded to fp16, as the forward computed it."""
+    row = tl.program_id(0).to(tl.int64)
+    cols = tl.arange(0, BLOCK)
+    valid = cols < WIDTH
+    x = tl.load(x_ptr + row * WIDTH + cols, mask=valid, other=0.0)
+    mq = _keep(bits_q_ptr, row, cols, valid, WIDTH) * tl.load(scale_q_ptr)
+    mv = _keep(bits_v_ptr, row, cols, valid, WIDTH) * tl.load(scale_v_ptr)
+    tl.store(xq_ptr + row * WIDTH + cols, (x * mq).to(tl.float16), mask=valid)
+    tl.store(xv_ptr + row * WIDTH + cols, (x * mv).to(tl.float16), mask=valid)
+
+
+@triton.jit(do_not_specialize=["n_rows"])
+def skc_lora_input_grad_kernel(gq_ptr, gv_ptr, bits_q_ptr, bits_v_ptr, out_ptr, n_rows, scale_q,
+                               scale_v, WIDTH: tl.constexpr, BLOCK: tl.constexpr):
+    """The input gradient of both LoRA branches through dropout, q's plus v's in fp32:
+    (fp32(g) * keep) * 1/(1-p) for each, as PyTorch's dropout backward and autograd sum it."""
+    row = tl.program_id(0).to(tl.int64)
+    cols = tl.arange(0, BLOCK)
+    valid = cols < WIDTH
+    gq = tl.load(gq_ptr + row * WIDTH + cols, mask=valid, other=0.0).to(tl.float32)
+    gv = tl.load(gv_ptr + row * WIDTH + cols, mask=valid, other=0.0).to(tl.float32)
+    tq = (gq * _keep(bits_q_ptr, row, cols, valid, WIDTH)) * scale_q
+    tv = (gv * _keep(bits_v_ptr, row, cols, valid, WIDTH)) * scale_v
+    tl.store(out_ptr + row * WIDTH + cols, tq + tv, mask=valid)
+
+
+def pack_keep(keep_q, keep_v):
+    """Two bool keep-masks [T, W] (W divisible by 8) -> bit-packed uint8 [T, W / 8] each."""
+    n_rows, width = keep_q.shape
+    bits_q = torch.empty((n_rows, width // 8), dtype=torch.uint8, device=keep_q.device)
+    bits_v = torch.empty_like(bits_q)
+    skc_keep_pack_kernel[(n_rows,)](keep_q.view(torch.uint8), keep_v.view(torch.uint8), bits_q,
+                                    bits_v, n_rows, WIDTH=width,
+                                    BYTES=triton.next_power_of_2(width // 8), num_warps=2)
+    return bits_q, bits_v
+
+
 class LoRAPairFromNorm(torch.autograd.Function):
     """peft's LoRA branches of q_proj and v_proj, lora_B(lora_A(dropout(x))) * scaling under fp16
     autocast, for x = the output of our RMSNorm, with the same ops in the same order.
 
-    For lora_A's weight gradient peft keeps fp16(dropout(x)): 3 KB per token per projection.
-    Here backward rebuilds it from the norm's input (kept by the norm for its own backward), the
-    norm kernel (bit-identical) and the dropout keep-mask, so only the mask is kept."""
+    For lora_A's weight gradient peft keeps fp16(dropout(x)) (3 KB per token per projection)
+    and dropout keeps its mask as bytes (1.5 KB). Here only the masks are kept, packed to bits
+    (0.19 KB): backward rebuilds fp16(dropout(x)) from the norm's input (kept by the norm for its
+    own backward) with the norm kernel (bit-identical), and two of our kernels replace the mask
+    ops of both branches: the rebuilt inputs, and the input gradient through dropout."""
 
     @staticmethod
-    def forward(ctx, x, h, norm_weight, eps, scaled_q, keep_q, scale_q, scaled_v, keep_v, scale_v,
-                a_q, b_q, a_v, b_v, scaling_q, scaling_v, p_q, p_v):
+    def forward(ctx, x, h, norm_weight, eps, scaled_q, mask_q, scale_q, scaled_v, mask_v, scale_v,
+                a_q, b_q, a_v, b_v, scaling_q, scaling_v, p_q, p_v, packed):
         outs, us = [], []
         for scaled, a, b, scaling in ((scaled_q, a_q, b_q, scaling_q), (scaled_v, a_v, b_v, scaling_v)):
             xd = x * scaled if scaled is not None else x
             u = F.linear(xd.to(torch.float16), a.to(torch.float16))
             outs.append(F.linear(u, b.to(torch.float16)) * scaling)
             us.append(u)
-        ctx.save_for_backward(h, norm_weight, keep_q, scale_q, keep_v, scale_v, us[0], us[1],
+        ctx.save_for_backward(h, norm_weight, mask_q, scale_q, mask_v, scale_v, us[0], us[1],
                               a_q, b_q, a_v, b_v)
-        ctx.eps, ctx.scalings, ctx.ps = eps, (scaling_q, scaling_v), (p_q, p_v)
+        ctx.eps, ctx.scalings, ctx.ps, ctx.packed = eps, (scaling_q, scaling_v), (p_q, p_v), packed
         return outs[0], outs[1]
 
     @staticmethod
     def backward(ctx, grad_q, grad_v):
-        h, norm_weight, keep_q, scale_q, keep_v, scale_v, u_q, u_v, a_q, b_q, a_v, b_v = \
+        h, norm_weight, mask_q, scale_q, mask_v, scale_v, u_q, u_v, a_q, b_q, a_v, b_v = \
             ctx.saved_tensors
         x = rmsnorm.recompute(h, norm_weight, ctx.eps)
         width = x.shape[-1]
-        grad_x, grads = None, []
-        branches = ((grad_q, keep_q, scale_q, u_q, a_q, b_q, ctx.scalings[0], ctx.ps[0]),
-                    (grad_v, keep_v, scale_v, u_v, a_v, b_v, ctx.scalings[1], ctx.ps[1]))
-        for grad, keep, scale, u, a, b, scaling, p in branches:
+        n_rows = x.numel() // width
+        if ctx.packed:
+            x16_q = torch.empty((n_rows, width), dtype=torch.float16, device=x.device)
+            x16_v = torch.empty_like(x16_q)
+            block = triton.next_power_of_2(width)
+            skc_lora_inputs_kernel[(n_rows,)](x, mask_q, mask_v, scale_q, scale_v, x16_q, x16_v,
+                                              n_rows, WIDTH=width, BLOCK=block, num_warps=4,
+                                              enable_fp_fusion=False)
+            inputs = (x16_q, x16_v)
+        else:
+            inputs = tuple((x * (m * s) if m is not None else x).to(torch.float16).reshape(-1, width)
+                           for m, s in ((mask_q, scale_q), (mask_v, scale_v)))
+        grads, input_grads = [], []
+        branches = ((grad_q, u_q, a_q, b_q, ctx.scalings[0]), (grad_v, u_v, a_v, b_v, ctx.scalings[1]))
+        for (grad, u, a, b, scaling), x16 in zip(branches, inputs):
             if grad is None:
-                grads += [None, None]
-                continue
+                grad = torch.zeros(u.shape[:-1] + (b.shape[0],), dtype=torch.float16, device=u.device)
             # the same products autograd forms for out = (u @ b16^T) * scaling, u = x16 @ a16^T
             g = (grad * scaling).reshape(-1, grad.shape[-1])
             u2 = u.reshape(-1, u.shape[-1])
             grad_b = g.t().mm(u2)
             grad_u = g.mm(b.to(torch.float16))
-            xd = x * (keep * scale) if keep is not None else x
-            x16 = xd.to(torch.float16).reshape(-1, width)
-            grad_a = grad_u.t().mm(x16)
-            gx = grad_u.mm(a.to(torch.float16)).to(torch.float32)
-            if keep is not None:
-                gx = gx * keep.reshape(-1, width) * (1.0 / (1.0 - p))
-            grad_x = gx if grad_x is None else grad_x + gx
-            grads += [grad_a.to(torch.float32), grad_b.to(torch.float32)]
+            grads += [grad_u.t().mm(x16).to(torch.float32), grad_b.to(torch.float32)]
+            input_grads.append(grad_u.mm(a.to(torch.float16)))
+        if ctx.packed:
+            grad_x = torch.empty((n_rows, width), dtype=torch.float32, device=x.device)
+            skc_lora_input_grad_kernel[(n_rows,)](input_grads[0], input_grads[1], mask_q, mask_v,
+                                                  grad_x, n_rows, 1.0 / (1.0 - ctx.ps[0]),
+                                                  1.0 / (1.0 - ctx.ps[1]), WIDTH=width,
+                                                  BLOCK=triton.next_power_of_2(width), num_warps=4,
+                                                  enable_fp_fusion=False)
+        else:
+            grad_x = None
+            for gx16, m, p in zip(input_grads, (mask_q, mask_v), ctx.ps):
+                gx = gx16.to(torch.float32)
+                if m is not None:
+                    gx = gx * m.reshape(-1, width) * (1.0 / (1.0 - p))
+                grad_x = gx if grad_x is None else grad_x + gx
         return (grad_x.view(x.shape), None, None, None, None, None, None, None, None, None,
-                grads[0], grads[1], grads[2], grads[3], None, None, None, None)
+                grads[0], grads[1], grads[2], grads[3], None, None, None, None, None)
 
 
 def _lora_parts(layer, name):
@@ -211,11 +296,17 @@ def _lora_pair(x, link, parts_q, parts_v, packing):
             draws.append((None, None, None))
             continue
         scaled, keep = packing.dropout_draw(p, x.shape[-1], x.dtype, x.device)
-        draws.append((scaled.view(x.shape), keep.view(x.shape), packing.dropout_scale(p, scaled)))
+        draws.append((scaled.view(x.shape), keep, packing.dropout_scale(p, scaled)))
     (sq, kq, cq), (sv, kv, cv) = draws
-    return LoRAPairFromNorm.apply(x, h, norm_weight, eps, sq, kq, cq, sv, kv, cv,
+    packed = kq is not None and kv is not None and x.shape[-1] % 8 == 0
+    if packed:
+        mq, mv = pack_keep(kq, kv)
+    else:
+        mq = kq.view(x.shape) if kq is not None else None
+        mv = kv.view(x.shape) if kv is not None else None
+    return LoRAPairFromNorm.apply(x, h, norm_weight, eps, sq, mq, cq, sv, mv, cv,
                                   parts_q[0], parts_q[1], parts_v[0], parts_v[1],
-                                  parts_q[2], parts_v[2], parts_q[3], parts_v[3])
+                                  parts_q[2], parts_v[2], parts_q[3], parts_v[3], packed)
 
 
 def _single_lora(layer, lora_cls):

@@ -57,6 +57,20 @@ cases = [
       "dk_ptr": "*fp16", "n_tok": "i32", "HQ": "constexpr", "HK": "constexpr", "D": "constexpr",
       "BQ": "constexpr", "BK": "constexpr"},
      {"HQ": 12, "HK": 2, "D": 128, "BQ": 2048, "BK": 256}, {"num_warps": 4, "enable_fp_fusion": False}),
+    (attn.skc_keep_pack_kernel,
+     {"keep_q_ptr": "*u8", "keep_v_ptr": "*u8", "bits_q_ptr": "*u8", "bits_v_ptr": "*u8",
+      "n_rows": "i32", "WIDTH": "constexpr", "BYTES": "constexpr"},
+     {"WIDTH": 1536, "BYTES": 256}, {"num_warps": 2}),
+    (attn.skc_lora_inputs_kernel,
+     {"x_ptr": "*fp32", "bits_q_ptr": "*u8", "bits_v_ptr": "*u8", "scale_q_ptr": "*fp32",
+      "scale_v_ptr": "*fp32", "xq_ptr": "*fp16", "xv_ptr": "*fp16", "n_rows": "i32",
+      "WIDTH": "constexpr", "BLOCK": "constexpr"},
+     {"WIDTH": 1536, "BLOCK": 2048}, {"num_warps": 4, "enable_fp_fusion": False}),
+    (attn.skc_lora_input_grad_kernel,
+     {"gq_ptr": "*fp16", "gv_ptr": "*fp16", "bits_q_ptr": "*u8", "bits_v_ptr": "*u8",
+      "out_ptr": "*fp32", "n_rows": "i32", "scale_q": "fp32", "scale_v": "fp32",
+      "WIDTH": "constexpr", "BLOCK": "constexpr"},
+     {"WIDTH": 1536, "BLOCK": 2048}, {"num_warps": 4, "enable_fp_fusion": False}),
 ]
 for fn, sig, consts, opts in cases:
     try:

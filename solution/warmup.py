@@ -54,6 +54,17 @@ def _work():
         attn.skc_rope_bwd_kernel.warmup(q, kk, cs, cs, torch.empty_like(q), torch.empty_like(kk), 1,
                                         HQ=12, HK=2, D=128, BQ=2048, BK=256, num_warps=4,
                                         enable_fp_fusion=False, grid=grid)
+        # q/v LoRA dropout masks: bit packing, rebuilt inputs and input gradient (attn.py).
+        bq = torch.zeros((1, n // 8), dtype=torch.uint8, device=dev)
+        keep = torch.zeros((1, n), dtype=torch.uint8, device=dev)
+        attn.skc_keep_pack_kernel.warmup(keep, keep, bq, bq, 1, WIDTH=n, BYTES=256, num_warps=2,
+                                         grid=grid)
+        x16 = torch.empty((1, n), dtype=torch.float16, device=dev)
+        attn.skc_lora_inputs_kernel.warmup(x, bq, bq, r, r, x16, x16, 1, WIDTH=n, BLOCK=block,
+                                           num_warps=4, enable_fp_fusion=False, grid=grid)
+        attn.skc_lora_input_grad_kernel.warmup(x16, x16, bq, bq, x, 1, 1.0526, 1.0526, WIDTH=n,
+                                               BLOCK=block, num_warps=4, enable_fp_fusion=False,
+                                               grid=grid)
         # The starter kit's SwiGLU (used by mlp.py with fp16 gate/up; it does not count as ours).
         from . import swiglu
 
