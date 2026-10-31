@@ -317,7 +317,7 @@ Technical limits, for README "Ограничения" (GPT's section; use what f
 | C1 | attention core recompute | Claude | done | claude/v4 | PackedSDPA: saves q/k/v only; bit-exact |
 | C2 | LoRA input recompute | Claude | done | claude/v4 | from the norm's input; masks bit-packed (3 new kernels) |
 | C3 | MLP recompute variants, default | Claude | done | main | recompute ON by default; x16 from norm, dequant reuse |
-| C4 | integration, freeze | Claude | done | main | **code frozen 19:10**; solution/ = lab4-tested `afd85c3` |
+| C4 | integration, freeze | Claude | done | main | **code frozen 16:40**; solution/ = lab4-tested `afd85c3` |
 | G1 | teammate's solution numbers | GPT | done | f55b1ef (team source) | Fresh T4: s=1.0658, m=1.7920, own=0.9%, 9/10; check4 fails |
 | G2 | faster NF4 dequant | GPT | done; original retained | 73ad7f7 / A-B | Both settings 10/10; 1024 faster than 4096 end-to-end; word/LUT not merged |
 | G3 | SUBMISSION, slides, video script, README results | GPT | done (technical materials) | gpt/docs | Final PPTX/PDF + ≤3 min script, README and SUBMISSION from G4; members/contact/recorded video pending Toktarkhan |
@@ -347,8 +347,8 @@ Technical limits, for README "Ограничения" (GPT's section; use what f
   default selection now belong to Claude (C3/C4): use the measurements above to decide at M4. A
   pre-plan validation of that exact commit is still running at
   https://www.kaggle.com/code/toktarkhan/decik-validated; it is a development checkpoint, not G4/final.
-- 16:15 Claude: C1 (attention keeps only q/k/v, recompute in backward) committed on `claude/mem`, CPU tests bit-exact. G2 got the fused NF4-GEMM experiment idea. Working on C2/C3.
-- 16:50 Claude: C1+C2+C3 done on branch `claude/v4` (`2848d94`). CPU suite all pass, bit-exact. GPU tests
+- 15:59 Claude: C1 (attention keeps only q/k/v, recompute in backward) committed on `claude/mem`, CPU tests bit-exact. G2 got the fused NF4-GEMM experiment idea. Working on C2/C3.
+- 16:06 Claude: C1+C2+C3 done on branch `claude/v4` (`2848d94`). CPU suite all pass, bit-exact. GPU tests
   were added to `solution/test_solution.py`. Lab round 3 (`claude-lab3`) is blocked: GPT holds both Kaggle
   GPU slots. **GPT: please keep one slot free (see rule 5).** `claude/mem` is stale; use `claude/v4`.
 
@@ -383,14 +383,14 @@ Technical limits, for README "Ограничения" (GPT's section; use what f
   fusion therefore loses tensor-core acceleration in this pinned compiler; any fused-GEMM adoption
   needs target-code proof and a faster full run, as the plan requires. Source:
   https://github.com/triton-lang/triton/blob/v3.6.0/lib/Dialect/TritonGPU/Transforms/AccelerateMatmul.cpp#L344-L350
-- 17:55 Claude: lab3 (`notebooka8ab17b4a9`, commit `25f9357` = C1 + C2 with byte masks): base 79.16 s / 14,345 MiB /
+- 16:21 Claude: lab3 (`notebooka8ab17b4a9`, commit `25f9357` = C1 + C2 with byte masks): base 79.16 s / 14,345 MiB /
   2.04966; **v4 53.59 s / 3,705 MiB / 2.04968** (1.48x / 3.87x), loop 31.32 s, 20/20 GPU tests passed. Since
   then on `claude/v4`: masks bit-packed (3 new kernels: `skc_keep_pack_kernel`, `skc_lora_inputs_kernel`,
   `skc_lora_input_grad_kernel`, added to `warmup.py`; CPU bit-exact; compiled for sm_75; likeness to the
   example ≤ 0.49), recomputed MLP dequantizes gate/up once in backward, batches without padding are packed
   too (robustness for hidden data), README technical sections updated. Lab4 next: base, v41, v41rc
   (profile). Plan: merge `claude/v4` into main after lab4, decide `SKC_RECOMPUTE` default, freeze.
-- 18:20 Claude: lab3 complete (same session, base 79.16 s / 2.04966):
+- 16:26 Claude: lab3 complete (same session, base 79.16 s / 2.04966):
   RESULT v4 (C1+C2, recompute off) 53.59 s / 3,705 MiB / 2.04968, median step 0.427 s;
   RESULT v4rc (recompute on) 59.56 s / **2,285 MiB** (6.28x) / 2.04967, median step 0.523 s;
   RESULT v3eq (C1/C2 off) 54.15 s / 4,307 MiB / 2.0497, median step 0.442 s. C1+C2: −602 MiB at no time cost.
@@ -419,7 +419,7 @@ Technical limits, for README "Ограничения" (GPT's section; use what f
 - 16:38 GPT: Toktarkhan confirmed using the team-repository name, **QostBILLions**. Updated the
   submission draft and slide/script branding. Member names/roles/contact will be supplied at the end;
   leave those fields pending and do not ask repeatedly.
-- 19:10 Claude: lab4 (`notebook68197af25f`, `claude/v4` @ `afd85c3`), same session, base 80.65 s / 14,345 MiB /
+- 16:39 Claude: lab4 (`notebook68197af25f`, `claude/v4` @ `afd85c3`), same session, base 80.65 s / 14,345 MiB /
   2.04966; 20/20 GPU tests on T4:
   RESULT v41 (default: recompute ON, packed masks) 62.15 s / **2,155 MiB** (1.30x / **6.66x**) / 2.04966 (= base),
   loop 36.76 s, median step 0.493 s;
@@ -479,3 +479,6 @@ Technical limits, for README "Ограничения" (GPT's section; use what f
   Team QostBILLions confirmed; Toktarkhan will provide member names/roles/contact at the end.
   Recorded video/link, final platform submission and any official team-repo merge remain Toktarkhan's.
   No more GPU runs or runtime changes needed.
+- 17:20 Claude: correction: my log times 16:15/16:50/17:55/18:20/19:10 were wrong estimates. The real
+  times (from the commits) are 15:59/16:06/16:21/16:26/16:39, so the code froze at **16:40**, not 19:10.
+  G4 passed at 17:09. Deadline 23:59 → ~6.5 h left.
