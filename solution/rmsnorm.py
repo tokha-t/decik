@@ -64,8 +64,18 @@ def _rows(x):
     return x2 if x2.stride(-1) == 1 else x2.contiguous()
 
 
-def recompute(x, weight, eps):
+def _source(source):
+    """A norm input, given as the tensor itself or as (residual, delta) with input = residual + delta
+    (the decoder's residual add, same op and promotion as the base)."""
+    if isinstance(source, tuple):
+        residual, delta = source
+        return residual + delta
+    return source
+
+
+def recompute(source, weight, eps):
     """The norm's output for an input it ran on, bit-identical (same kernel, same launch)."""
+    x = _source(source)
     y, _ = _forward(_rows(x), weight, eps)
     return y.view(x.shape)
 
@@ -93,6 +103,55 @@ class RMSNormFn(torch.autograd.Function):
                                           x2.stride(0), dx.stride(0), n_cols, BLOCK=block,
                                           num_warps=_warps(block))
         return dx.view(ctx.shape), None, None
+
+
+class AddRMSNormFn(torch.autograd.Function):
+    """The decoder's `h = residual + delta; y = norm(h)` with h and y both returned, but h is not kept for
+    backward. Backward rebuilds h from the residual (the layer input, kept by the input norm anyway)
+    and delta (the fp16 attention output): 3 KB per token instead of 6. Same ops, same kernel:
+    bit-identical outputs; the input gradient sums the two paths into h as autograd does."""
+
+    @staticmethod
+    def forward(ctx, residual, delta, weight, eps):
+        warmup.wait()
+        h = residual + delta
+        x2 = _rows(h)
+        y, rstd = _forward(x2, weight, eps)
+        ctx.save_for_backward(residual, delta, weight, rstd)
+        ctx.eps = eps
+        return h, y.view(h.shape)
+
+    @staticmethod
+    def backward(ctx, grad_h, grad_y):
+        residual, delta, weight, rstd = ctx.saved_tensors
+        h = residual + delta
+        x2 = _rows(h)
+        n_rows, n_cols = x2.shape
+        total = grad_h
+        if grad_y is not None:
+            dy2 = grad_y.reshape(-1, n_cols)
+            if dy2.stride(-1) != 1:
+                dy2 = dy2.contiguous()
+            dx = torch.empty((n_rows, n_cols), dtype=x2.dtype, device=x2.device)
+            block = triton.next_power_of_2(n_cols)
+            skc_rmsnorm_bwd_kernel[(n_rows,)](dy2, x2, weight, rstd, dx, n_rows, dy2.stride(0),
+                                              x2.stride(0), dx.stride(0), n_cols, BLOCK=block,
+                                              num_warps=_warps(block))
+            dx = dx.view(h.shape)
+            total = dx if total is None else total + dx
+        if total is None:
+            return None, None, None, None
+        return total, total.to(delta.dtype), None, None
+
+
+def fusable(module, x):
+    """Our kernel can run this Qwen2RMSNorm on x (the same conditions as the patched forward)."""
+    weight = getattr(module, "weight", None)
+    return (isinstance(x, torch.Tensor) and on_gpu(x) and x.dtype == torch.float32 and x.numel() > 0
+            and isinstance(weight, torch.Tensor) and on_gpu(weight)
+            and weight.dtype in (torch.float32, torch.float16) and not weight.requires_grad
+            and weight.dim() == 1 and x.shape[-1] == weight.shape[0] and x.shape[-1] <= 8192
+            and getattr(type(module).forward, "_skc", False))
 
 
 def patch():

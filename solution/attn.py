@@ -376,7 +376,8 @@ def patch(recompute_lora=True):
         x = hidden_states
         link = STATE.norm_link
         parts_q = parts_v = None
-        if recompute_lora and link is not None and link[0] is x and link[1].shape == x.shape:
+        if (recompute_lora and link is not None and link[0] is x
+                and isinstance(link[1], torch.Tensor) and link[1].shape == x.shape):
             parts_q, parts_v = _lora_parts(self.q_proj, q_name), _lora_parts(self.v_proj, v_name)
         # Same call order as the base (q, k, v): the LoRA dropout draws stay in step.
         q_base = self.q_proj.base_layer(x.to(torch.float16))

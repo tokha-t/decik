@@ -63,15 +63,16 @@ class RecomputedMLP(torch.autograd.Function):
     """down(silu(gate(x)) * up(x)) for the fp32 input x; returns fp16 like the fp16 path."""
 
     @staticmethod
-    def forward(ctx, x, gate_proj, up_proj, down_proj, norm_input=None, norm_weight=None, eps=None):
+    def forward(ctx, x, gate_proj, up_proj, down_proj, norm_input=None, norm_weight=None, eps=None,
+                norm_delta=None):
         x16 = x.to(torch.float16).contiguous()
         gate = _linear16(x16, gate_proj)
         up = _linear16(x16, up_proj)
         hidden = _swiglu_fwd(gate, up)
         del gate, up
         out = _linear16(hidden, down_proj)
-        if norm_input is not None:  # x = norm(norm_input): keep nothing new
-            ctx.save_for_backward(norm_input, norm_weight)
+        if norm_input is not None:  # x = norm(norm_input [+ norm_delta]): keep nothing new
+            ctx.save_for_backward(norm_input, norm_weight, norm_delta)
             ctx.eps = eps
         else:
             ctx.save_for_backward(x16)
@@ -83,8 +84,9 @@ class RecomputedMLP(torch.autograd.Function):
     @staticmethod
     def backward(ctx, grad_out):
         if ctx.from_norm:
-            norm_input, norm_weight = ctx.saved_tensors
-            x16 = rmsnorm.recompute(norm_input, norm_weight, ctx.eps).to(torch.float16).contiguous()
+            norm_input, norm_weight, norm_delta = ctx.saved_tensors
+            source = norm_input if norm_delta is None else (norm_input, norm_delta)
+            x16 = rmsnorm.recompute(source, norm_weight, ctx.eps).to(torch.float16).contiguous()
         else:
             (x16,) = ctx.saved_tensors
         gate_proj, up_proj, down_proj = ctx.modules
@@ -105,7 +107,7 @@ class RecomputedMLP(torch.autograd.Function):
         del w_gate, dgate
         # Two separate casts summed in fp32, as autograd adds the two input gradients in the base.
         grad_x = grad_x + torch.matmul(dup, w_up).to(ctx.in_dtype)
-        return grad_x, None, None, None, None, None, None
+        return grad_x, None, None, None, None, None, None, None
 
 
 def patch(recompute=False):
@@ -142,9 +144,15 @@ def patch(recompute=False):
                 and recomputable(gate_proj, x.shape[-1]) and recomputable(up_proj, x.shape[-1])
                 and recomputable(down_proj, gate_proj.weight.quant_state.shape[0])):
             link = STATE.norm_link
-            if link is not None and link[0] is x and link[1].shape == x.shape:
-                return RecomputedMLP.apply(x, gate_proj, up_proj, down_proj, link[1], link[2],
-                                           link[3])
+            if link is not None and link[0] is x:
+                source = link[1]
+                if isinstance(source, tuple):
+                    norm_input, norm_delta = source
+                else:
+                    norm_input, norm_delta = source, None
+                if isinstance(norm_input, torch.Tensor) and norm_input.shape == x.shape:
+                    return RecomputedMLP.apply(x, gate_proj, up_proj, down_proj, norm_input,
+                                               link[2], link[3], norm_delta)
             return RecomputedMLP.apply(x, gate_proj, up_proj, down_proj)
         gate = gate_proj(x.to(torch.float16))
         up = up_proj(x.to(torch.float16))

@@ -138,3 +138,24 @@ def test_lora_pair_from_norm_matches_peft_ops():
         assert torch.equal(a, b)
     for p, g in zip(params, ref_grads):
         torch.testing.assert_close(p.grad, g, rtol=1e-3, atol=1e-5)
+
+
+def test_add_rmsnorm_matches_add_then_norm():
+    """Fused residual add + RMSNorm (h not kept, rebuilt in backward) vs the add and our norm."""
+    from solution.rmsnorm import AddRMSNormFn, RMSNormFn
+
+    torch.manual_seed(0)
+    n, hidden = 1100, 1536
+    w = torch.rand(hidden, device="cuda") + 0.5
+    residual = torch.randn(1, n, hidden, device="cuda") * 2
+    delta = (torch.randn(1, n, hidden, device="cuda") * 0.5).half()
+    g_h, g_y = torch.randn(1, n, hidden, device="cuda"), torch.randn(1, n, hidden, device="cuda")
+    r1, d1 = residual.clone().requires_grad_(True), delta.clone().requires_grad_(True)
+    h1 = r1 + d1
+    y1 = RMSNormFn.apply(h1, w, 1e-6)
+    torch.autograd.backward([h1, y1], [g_h, g_y])
+    r2, d2 = residual.clone().requires_grad_(True), delta.clone().requires_grad_(True)
+    h2, y2 = AddRMSNormFn.apply(r2, d2, w, 1e-6)
+    torch.autograd.backward([h2, y2], [g_h, g_y])
+    assert torch.equal(h1, h2) and torch.equal(y1, y2)
+    assert torch.equal(r1.grad, r2.grad) and torch.equal(d1.grad, d2.grad)
