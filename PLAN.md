@@ -338,7 +338,7 @@ slot per agent.
 | G2 | faster NF4 dequant | GPT | done; original retained | 73ad7f7 / A-B | Both settings 10/10; 1024 faster than 4096 end-to-end; word/LUT not merged |
 | G3 | SUBMISSION, slides, video script, README results | GPT | done (technical materials) | gpt/docs | Final PPTX/PDF + ≤3 min script, README and SUBMISSION from G4; members/contact/recorded video pending Toktarkhan |
 | G4 | final measured run, public notebook | GPT | done | frozen 5c1bbe5 | 10/10; s=1.3427, m=6.6566, 2155 MiB; public saved version 364217337; hashes verified |
-| G5 | cold start subprocess experiment | GPT | waiting for GPU | gpt/warmup dfe0ad6 | CPU suites + sm75 pass; balanced A/B queued, lab version2; default unchanged |
+| G5 | cold start subprocess experiment | GPT | waiting for Kaggle reconnection | gpt/warmup dfe0ad6 | CPU + sm75 pass; v2 last confirmed queued; status/quota now Unauthenticated; default unchanged |
 | G6 | GPU idle trace and attribution | GPT | done | gpt/trace-complete | Steps11–13 traced; corrected CPU labels/autograd attribution; docs/g6-idle-diagnosis.md |
 
 ## 10. Log (append only, newest last)
@@ -570,3 +570,14 @@ slot per agent.
   downloaded logs and provenance in docs/g5-cpu-validation/, current report docs/g5-cold-start.md.
   Current notebook kernel printed preloaded NumPy2.1.3, while pip pinned2.2.6 before fresh test
   subprocesses; this is recorded explicitly. No runtime candidate merged or release figures changed.
+
+- 18:46 GPT: external connection blocker: mcp__kaggle status AND quota now return
+  Unauthenticated (confirmed on retry). Asked Toktarkhan to reconnect Kaggle. Last confirmed
+  G5 state: saved version2 QUEUED, no outputs. Only one GPT GPU batch is pending; do not infer
+  performance or change defaults. G6 is complete and published; G5 code/lifecycle/CPU/sm75 gates
+  are complete, but GPU A/B and warmup/first-step probes remain unfinished. Resume by checking
+  https://www.kaggle.com/code/toktarkhan/gpt-warmup-lab/log and downloading its saved v2 evidence.
+  User's Successfully ran link was the CPU-only notebook, which has passed and is archived.
+  Existing-profile browser access remains disabled by Work settings; the separate Chrome
+  connector is signed out of Kaggle. The authenticated Kaggle connector is the preferred route
+  once reconnected. No runtime change on main; v4 stays validated. Hard stop21:00 still applies.
