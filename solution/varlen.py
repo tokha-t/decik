@@ -42,6 +42,54 @@ class Packing:
                 keep.reshape(-1, width).index_select(0, self.index))
 
 
+def _row_attention(q, k, v, groups, scale):
+    """Causal SDPA of one row; query head h reads kv head h // groups (repeat_kv)."""
+    if groups > 1:
+        k = k.repeat_interleave(groups, dim=1)
+        v = v.repeat_interleave(groups, dim=1)
+    return torch.nn.functional.scaled_dot_product_attention(q, k, v, dropout_p=0.0, scale=scale,
+                                                            is_causal=True)
+
+
+class PackedSDPA(torch.autograd.Function):
+    """Causal attention over every row of the packed sequence, keeping only q, k, v for backward.
+
+    Per-row SDPA under autograd keeps the GQA-expanded k and v and its output for backward:
+    12 KB per token per layer, about 540 MB on the longest batch. Here backward re-runs each
+    row's forward (the attention forward is about 1 % of the step) right before that row's
+    backward, so only q, k and v are kept (4 KB). The rows' outputs go straight into one
+    [1, T, heads, head_dim] buffer (no cat and transpose copies), and the gradients straight
+    into their rows (no zero-filled full-size gradient per row)."""
+
+    @staticmethod
+    def forward(ctx, query, key, value, spans, groups, scale):
+        out = query.new_empty((1, query.shape[2], query.shape[1], query.shape[3]))
+        for start, length in spans:
+            rows = slice(start, start + length)
+            o = _row_attention(query[:, :, rows], key[:, :, rows], value[:, :, rows], groups, scale)
+            out[:, rows].copy_(o.transpose(1, 2))
+        ctx.save_for_backward(query, key, value)
+        ctx.spans, ctx.groups, ctx.scale = spans, groups, scale
+        return out
+
+    @staticmethod
+    def backward(ctx, grad_out):
+        query, key, value = ctx.saved_tensors
+        dq, dk, dv = torch.empty_like(query), torch.empty_like(key), torch.empty_like(value)
+        for start, length in ctx.spans:
+            rows = slice(start, start + length)
+            q = query[:, :, rows].detach().requires_grad_(True)
+            k = key[:, :, rows].detach().requires_grad_(True)
+            v = value[:, :, rows].detach().requires_grad_(True)
+            with torch.enable_grad():
+                o = _row_attention(q, k, v, ctx.groups, ctx.scale)
+            gq, gk, gv = torch.autograd.grad(o, (q, k, v), grad_out[:, rows].transpose(1, 2))
+            dq[:, :, rows] = gq
+            dk[:, :, rows] = gk
+            dv[:, :, rows] = gv
+        return dq, dk, dv, None, None, None
+
+
 class PackedDropout(torch.autograd.Function):
     """x * mask * scale with a given mask, saved as bool for backward like native dropout."""
 
@@ -93,7 +141,7 @@ def plan(model, input_ids, attention_mask, position_ids, past_key_values, inputs
     return Packing(index, positions, spans, batch, seq)
 
 
-def patch():
+def patch(recompute_attention=True):
     import torch.nn.functional as F
     from transformers.modeling_outputs import BaseModelOutputWithPast
     from transformers.modeling_utils import ALL_ATTENTION_FUNCTIONS
@@ -142,6 +190,11 @@ def patch():
             return sdpa(module, query, key, value, attention_mask, dropout=dropout,
                         scaling=scaling, is_causal=is_causal, **kwargs)
         groups = getattr(module, "num_key_value_groups", 1)
+        if (recompute_attention and dropout == 0.0 and query.dtype == torch.float16
+                and key.dtype == torch.float16 and value.dtype == torch.float16
+                and query.stride(-1) == 1 and key.stride(-1) == 1 and value.stride(-1) == 1):
+            # fp16 q/k/v come from attn.py; SDPA would run on them as they are under autocast
+            return PackedSDPA.apply(query, key, value, packing.spans, groups, scaling), None
         outputs = []
         for start, length in packing.spans:
             q = query[:, :, start:start + length]
