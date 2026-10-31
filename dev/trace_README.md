@@ -8,7 +8,7 @@ python dev/trace_run.py --solution --out trace_runs/with-stack
 python dev/analyze_trace.py trace_runs/with-stack/trace.json.gz --out trace_runs/with-stack/analysis.json
 ```
 
-`kaggle_gpt_trace.ipynb` pins the source and also runs a separate `--no-stack` control.
+`notebooks/kaggle_gpt_trace.ipynb` pins the source and also runs a separate `--no-stack` control.
 The diagnostic runner calls `run_task.make_config`, then starts the child with the official
 allocator, GPU visibility, offline environment and empty per-run compiler caches. The child
 uses `harness._train.TritonWatch`, the same Soup command, and the same synchronized step
