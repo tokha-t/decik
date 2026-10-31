@@ -5,7 +5,8 @@
 оптимизатор и выходы Soup не меняются.
 
 - **Публичный Kaggle-ноутбук (сохранённая версия):** [финальная проверка v5.2, версия 364288750](https://www.kaggle.com/code/toktarkhan/notebook72649ae047?scriptVersionId=364288750)
-- **Финальный коммит:** [`8414ab4`](https://github.com/tokha-t/decik/commit/8414ab48cdc23c2ddb509f5418f41c2457d40811)
+- **Финальный коммит:** [`8414ab4`](https://github.com/BAITC-Hacks/hack-150214a7-qostbillions/commit/8414ab48cdc23c2ddb509f5418f41c2457d40811) в репозитории команды на платформе (https://github.com/BAITC-Hacks/hack-150214a7-qostbillions, приватный).
+- **Публичное зеркало** (его клонирует Kaggle-ноутбук, потому что репозиторий команды приватный): [tokha-t/decik](https://github.com/tokha-t/decik/commit/8414ab48cdc23c2ddb509f5418f41c2457d40811), тот же коммит.
 
 ## Результаты (Kaggle T4, `harness/run_task.py`, публичные строки)
 
@@ -214,7 +215,8 @@ fp16-выход attention (3 КиБ); общий residual повторно не 
 ### Установка
 
 ```bash
-git clone https://github.com/tokha-t/decik.git && cd decik
+git clone https://github.com/BAITC-Hacks/hack-150214a7-qostbillions.git && cd hack-150214a7-qostbillions
+# или публичное зеркало: git clone https://github.com/tokha-t/decik.git && cd decik
 git checkout 8414ab48cdc23c2ddb509f5418f41c2457d40811     # измеренная версия v5.2
 pip install "soup-cli[train]==0.77.0" "transformers==5.16.1" "peft==0.20.0" "trl==0.29.1" \
             "bitsandbytes==0.50.2" "accelerate==1.14.0" pytest

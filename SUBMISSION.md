@@ -2,7 +2,8 @@
 
 ## Links
 
-- Repository, final commit: [https://github.com/tokha-t/decik/commit/8414ab48cdc23c2ddb509f5418f41c2457d40811](https://github.com/tokha-t/decik/commit/8414ab48cdc23c2ddb509f5418f41c2457d40811) (v5.2, `8414ab48cdc23c2ddb509f5418f41c2457d40811`).
+- Repository, final commit: [https://github.com/BAITC-Hacks/hack-150214a7-qostbillions/commit/8414ab48cdc23c2ddb509f5418f41c2457d40811](https://github.com/BAITC-Hacks/hack-150214a7-qostbillions/commit/8414ab48cdc23c2ddb509f5418f41c2457d40811) (v5.2; the platform team repository, private).
+  Public mirror with the same commit, cloned by the Kaggle notebook: [https://github.com/tokha-t/decik/commit/8414ab48cdc23c2ddb509f5418f41c2457d40811](https://github.com/tokha-t/decik/commit/8414ab48cdc23c2ddb509f5418f41c2457d40811).
 - Public Kaggle notebook, the saved version (`COMMIT` in it = the sha above; the same link is in README):
   [https://www.kaggle.com/code/toktarkhan/notebook72649ae047?scriptVersionId=364288750](https://www.kaggle.com/code/toktarkhan/notebook72649ae047?scriptVersionId=364288750).
 - Demo video (up to 3 minutes): **pending — link from the team**.

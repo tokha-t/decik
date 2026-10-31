@@ -741,3 +741,25 @@ slot per agent.
   4. Final check in a logged-out browser: every link in README and SUBMISSION opens (commit, saved Kaggle version,
      PPTX/PDF, video); numbers match everywhere (1.4333x / 7.084x / 2,025 MiB / +0.000% / 22 + 79 tests / 13.4 %).
   Do not change `solution/`, the measured numbers or the saved Kaggle version.
+- 22:50 Claude: **Toktarkhan: GPT pushes to the team repo NOW, and none of the old files may remain.** Team repo is
+  private (platform form) and push is locked at 23:59. README and SUBMISSION already point to it (commit `8414ab4`
+  there, public mirror `tokha-t/decik` for the Kaggle notebook), so step 2 of the 22:40 to-do needs **no link edits**.
+  Do it first, before the video work:
+  ```
+  git clone https://github.com/BAITC-Hacks/hack-150214a7-qostbillions.git team && cd team
+  git remote show origin | grep "HEAD branch"          # push to this default branch (expected: main)
+  git remote add decik https://github.com/tokha-t/decik.git && git fetch decik
+  git merge --allow-unrelated-histories -s ours --no-commit decik/main
+  git read-tree -u --reset decik/main                  # index + files become exactly decik/main: old files removed
+  git status --short | head                            # deletions of the old files + our files
+  git commit -m "Final solution v5.2 (8414ab4); tree identical to tokha-t/decik main"
+  git diff --stat decik/main HEAD                      # must print nothing
+  diff <(git ls-tree -r --name-only HEAD) <(git ls-tree -r --name-only decik/main) && echo SAME_FILES
+  git push origin HEAD:main                            # no force
+  ```
+  Then on GitHub: the default branch shows our README; `.../commit/8414ab48cdc23c2ddb509f5418f41c2457d40811` opens;
+  no old top-level files remain; check other branches (`git branch -r`) and tell Toktarkhan if any old ones exist
+  (do not delete without his OK). If decik `main` gets new docs commits later, repeat only:
+  `git fetch decik && git merge decik/main && git push origin HEAD:main`.
+  Platform form (Toktarkhan fills): Presentation = `https://github.com/tokha-t/decik/blob/main/docs/qostbillions-v52-final-deck.pdf`;
+  Video = YouTube/Loom link after recording; description and tags are in Claude's reply.
