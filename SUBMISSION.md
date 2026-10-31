@@ -1,4 +1,4 @@
-# Soup Kernel Challenge — Decik candidate
+# Submission: QostBILLions
 
 ## Release status
 
@@ -46,7 +46,8 @@ The checker binds its verdict to the result hash and the solution source hash.
 
 ## Remaining submission fields
 
-- Team name, members and captain contact: pending confirmation.
+- Team: **QostBILLions**, confirmed by Toktarkhan from the team repository name.
+- Member names/roles and captain contact: Toktarkhan will provide these at the end.
 - Public notebook: pending publication of the validated saved version.
 - Demo video (up to 3 minutes): pending.
 - Presentation: pending.

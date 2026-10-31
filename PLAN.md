@@ -368,3 +368,7 @@ Recompute is about score-neutral if we hold both bests, so the default is still 
   SKC_NF4_LUT=1; current production defaults unchanged. Explicit sm75 compile covers both LUT modes,
   and warmup compiles the selected mode. CPU notebook v7 and GPU notebook v3 are running; only the
   latter consumes a GPU slot.
+
+- 16:38 GPT: Toktarkhan confirmed using the team-repository name, **QostBILLions**. Updated the
+  submission draft and slide/script branding. Member names/roles/contact will be supplied at the end;
+  leave those fields pending and do not ask repeatedly.
