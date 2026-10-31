@@ -23,12 +23,13 @@ from ._state import on_gpu
 BYTES_PER_PROGRAM = int(os.environ.get("SKC_NF4_BYTES", "1024"))  # bytes per program (2 weights each)
 NUM_WARPS = int(os.environ.get("SKC_NF4_WARPS", "4"))
 USE_WORD_LOADS = os.environ.get("SKC_NF4_WORDS", "0") == "1"
+USE_LOCAL_LUT = os.environ.get("SKC_NF4_LUT", "0") == "1"
 
 
 @triton.jit(do_not_specialize=["n_bytes"])
 def skc_nf4_dequant_kernel(packed_ptr, absmax_ptr, absmax2_ptr, code2_ptr, offset_ptr, code_ptr,
                            out_ptr, n_bytes, NESTED: tl.constexpr, QBLOCK: tl.constexpr,
-                           QBLOCK2: tl.constexpr, BLOCK: tl.constexpr):
+                           QBLOCK2: tl.constexpr, BLOCK: tl.constexpr, LOCAL_LUT: tl.constexpr = False):
     pid = tl.program_id(0).to(tl.int64)
     offs = pid * BLOCK + tl.arange(0, BLOCK)
     valid = offs < n_bytes
@@ -42,8 +43,13 @@ def skc_nf4_dequant_kernel(packed_ptr, absmax_ptr, absmax2_ptr, code2_ptr, offse
         scale = scale + tl.load(offset_ptr)
     else:
         scale = tl.load(absmax_ptr + block, mask=valid, other=0.0)
-    high = tl.load(code_ptr + (byte >> 4), mask=valid, other=0.0) * scale
-    low = tl.load(code_ptr + (byte & 15), mask=valid, other=0.0) * scale
+    if LOCAL_LUT:
+        code = tl.load(code_ptr + tl.arange(0, 16))
+        high = tl.gather(code, byte >> 4, axis=0) * scale
+        low = tl.gather(code, byte & 15, axis=0) * scale
+    else:
+        high = tl.load(code_ptr + (byte >> 4), mask=valid, other=0.0) * scale
+        low = tl.load(code_ptr + (byte & 15), mask=valid, other=0.0) * scale
     pair = tl.interleave(high, low).to(tl.float16)
     outs = pid * (2 * BLOCK) + tl.arange(0, 2 * BLOCK)
     tl.store(out_ptr + outs, pair, mask=outs < 2 * n_bytes)
@@ -116,10 +122,11 @@ def dequantize_nf4(packed, quant_state):
                  and qs.blocksize % 8 == 0 and (2 * BYTES_PER_PROGRAM) % qs.blocksize == 0)
     kernel = skc_nf4_dequant_word_kernel if word_path else skc_nf4_dequant_kernel
     storage = packed.reshape(-1)[:n_bytes].view(torch.int32) if word_path else packed
+    options = {} if word_path else {"LOCAL_LUT": USE_LOCAL_LUT}
     kernel[grid](storage, absmax, absmax2, code2, offset, code, out, n_bytes,
                                  NESTED=bool(qs.nested), QBLOCK=int(qs.blocksize),
                                  QBLOCK2=int(block2), BLOCK=BYTES_PER_PROGRAM, num_warps=NUM_WARPS,
-                                 enable_fp_fusion=False)
+                                 enable_fp_fusion=False, **options)
     return out
 
 

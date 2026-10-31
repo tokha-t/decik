@@ -28,6 +28,7 @@ def _work():
         if nf4.USE_WORD_LOADS:
             nf4_kernel = nf4.skc_nf4_dequant_word_kernel
             packed = packed.view(torch.int32)
+        nf4_options = {} if nf4.USE_WORD_LOADS else {"LOCAL_LUT": nf4.USE_LOCAL_LUT}
         nf4_kernel.warmup(
             packed,
             torch.zeros(nf4.BYTES_PER_PROGRAM // 32 + 1, dtype=torch.uint8, device=dev),
@@ -38,7 +39,7 @@ def _work():
             torch.empty(2 * nf4.BYTES_PER_PROGRAM, dtype=torch.float16, device=dev),
             nf4.BYTES_PER_PROGRAM, NESTED=True, QBLOCK=64, QBLOCK2=256, BLOCK=nf4.BYTES_PER_PROGRAM,
             num_warps=nf4.NUM_WARPS,
-            enable_fp_fusion=False, grid=grid)
+            enable_fp_fusion=False, grid=grid, **nf4_options)
         # RMSNorm over the 1536-wide fp32 residual stream with fp32 weights.
         n = 1536
         block = 2048

@@ -40,11 +40,12 @@ for shape, count in zip(shapes, weights):
     expected = bnbf.dequantize_4bit(packed, qs)
     output = torch.empty_like(expected)
     words = packed.reshape(-1).view(torch.int32)
-    cases = [(impl, block, warps) for impl in ("legacy", "word") for block, warps in configs]
+    cases = [(impl, block, warps) for impl in ("legacy", "word", "lut") for block, warps in configs]
     samples = {case: {"kernel_ms": [], "wrapper_ms": []} for case in cases}
 
     def select(impl, block, warps):
         nf4.USE_WORD_LOADS = impl == "word"
+        nf4.USE_LOCAL_LUT = impl == "lut"
         nf4.BYTES_PER_PROGRAM, nf4.NUM_WARPS = block, warps
 
         def launch():
@@ -53,7 +54,8 @@ for shape, count in zip(shapes, weights):
             fn[(triton.cdiv(packed.numel(), block),)](
                 storage, qs.absmax, qs.state2.absmax, qs.state2.code, qs.offset, qs.code,
                 output, packed.numel(), NESTED=True, QBLOCK=64, QBLOCK2=qs.state2.blocksize,
-                BLOCK=block, num_warps=warps, enable_fp_fusion=False)
+                BLOCK=block, num_warps=warps, enable_fp_fusion=False,
+                **({} if impl == "word" else {"LOCAL_LUT": impl == "lut"}))
 
         launch()
         assert torch.equal(output, expected), (shape, impl, block, warps, "kernel")
@@ -87,7 +89,7 @@ for shape, count in zip(shapes, weights):
     torch.cuda.empty_cache()  # Between standalone benchmark shapes, never inside training.
 
 scores = []
-for impl in ("legacy", "word"):
+for impl in ("legacy", "word", "lut"):
     for block, warps in configs:
         rows = [r for r in records if (r["impl"], r["bytes_per_program"], r["num_warps"])
                 == (impl, block, warps)]

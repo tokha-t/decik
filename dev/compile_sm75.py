@@ -20,8 +20,8 @@ def build(fn, signature, constexprs, options):
     src = ASTSource(fn=fn, signature=signature, constexprs=constexprs)
     kernel = triton.compile(src, target=TARGET, options=options)
     meta = kernel.metadata
-    print(f"OK  {fn.__name__:28s} regs={getattr(meta, 'num_regs', '?')} spills="
-          f"{getattr(meta, 'num_spills', '?')} shared={meta.shared} warps={meta.num_warps}")
+    print(f"OK  {fn.__name__:28s} regs={getattr(kernel, 'n_regs', '?')} spills="
+          f"{getattr(kernel, 'n_spills', '?')} shared={meta.shared} warps={meta.num_warps}")
     return kernel
 
 
@@ -36,8 +36,18 @@ cases = [
     (nf4.skc_nf4_dequant_kernel,
      {"packed_ptr": "*u8", "absmax_ptr": "*u8", "absmax2_ptr": "*fp32", "code2_ptr": "*fp32",
       "offset_ptr": "*fp32", "code_ptr": "*fp32", "out_ptr": "*fp16", "n_bytes": "i32",
-      "NESTED": "constexpr", "QBLOCK": "constexpr", "QBLOCK2": "constexpr", "BLOCK": "constexpr"},
-     {"NESTED": True, "QBLOCK": 64, "QBLOCK2": 256, "BLOCK": nf4.BYTES_PER_PROGRAM},
+      "NESTED": "constexpr", "QBLOCK": "constexpr", "QBLOCK2": "constexpr", "BLOCK": "constexpr",
+      "LOCAL_LUT": "constexpr"},
+     {"NESTED": True, "QBLOCK": 64, "QBLOCK2": 256, "BLOCK": nf4.BYTES_PER_PROGRAM,
+      "LOCAL_LUT": False},
+     {"num_warps": 4, "enable_fp_fusion": False}),
+    (nf4.skc_nf4_dequant_kernel,
+     {"packed_ptr": "*u8", "absmax_ptr": "*u8", "absmax2_ptr": "*fp32", "code2_ptr": "*fp32",
+      "offset_ptr": "*fp32", "code_ptr": "*fp32", "out_ptr": "*fp16", "n_bytes": "i32",
+      "NESTED": "constexpr", "QBLOCK": "constexpr", "QBLOCK2": "constexpr", "BLOCK": "constexpr",
+      "LOCAL_LUT": "constexpr"},
+     {"NESTED": True, "QBLOCK": 64, "QBLOCK2": 256, "BLOCK": nf4.BYTES_PER_PROGRAM,
+      "LOCAL_LUT": True},
      {"num_warps": 4, "enable_fp_fusion": False}),
     (rmsnorm.skc_rmsnorm_fwd_kernel,
      {"x_ptr": "*fp32", "w_ptr": "*fp32", "y_ptr": "*fp32", "rstd_ptr": "*fp32", "n_rows": "i32",
